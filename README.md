@@ -30,7 +30,7 @@ All the servers run on your local machine and the ports are not exposed to publi
 ## Introduction
 This is a complete rewrite of [the previous bot](https://github.com/Frizz925/gbf-raid-bot) that heavily relies on OpenCV library and also a working application that is derived from the incomplete [Mary Bot](https://github.com/Frizz925/mary-bot).
 
-It lets you to grind in the game with preset scenarios written using JavaScript. The example scenario can be found [here](blob/master/server/scenarios/pina_hazard.js) which is used to automatically farm the Extreme and Nightmare stages in [Cinderella Fantasy: Piña Hazard](https://gbf.wiki/Cinderella_Fantasy:_Pi%C3%B1a_Hazard) event. 
+It lets you to grind in the game with preset scenarios written using JavaScript. The example scenario can be found [here](server/scenarios/pina_hazard.js) which is used to automatically farm the Extreme and Nightmare stages in [Cinderella Fantasy: Piña Hazard](https://gbf.wiki/Cinderella_Fantasy:_Pi%C3%B1a_Hazard) event. 
 
 ## Getting Started
 The bot consists of 3 separate applications:
@@ -85,10 +85,10 @@ The configurations are stored inside the `config.ini` file of each application.
 |---------------|---------|-------------|
 | listener_port | 49544   | The port of the control server. |
 | window_title  | Granblue Fantasy - Google Chrome | The title of the browser window to lookup. |
-| input_tween | easeInOutCubic | Tween function to move the cursor used by [PyAutoGUI](/asweigart/pyautogui). List of tween functions is listed [here](https://github.com/asweigart/pyautogui/blob/master/pyautogui/tweens.py). |
+| input_tween | easeInOutCubic | Tween function to move the cursor used by [PyAutoGUI](https://github.com/asweigart/pyautogui). List of tween functions is listed [here](https://github.com/asweigart/pyautogui/blob/master/pyautogui/tweens.py). |
 
 ## Scenarios
-The bot uses scenario to determine what action it should take based on the logic and state of the game. The scenario itself is written in JavaScript and stored in the `server/scenarios` directory. Example of a scenario can be found [here](blob/master/server/scenarios/pina_hazard.js).
+The bot uses scenario to determine what action it should take based on the logic and state of the game. The scenario itself is written in JavaScript and stored in the `server/scenarios` directory. Example of a scenario can be found [here](server/scenarios/pina_hazard.js).
 
 ### Writing a scenario
 All scenarios must be stored inside the `server/scenarios` directory. The scenario will be treated as a module by the **control server** using `require()`. The scenario itself must exports an array of actions.
