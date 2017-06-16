@@ -38,7 +38,6 @@ const battle = [
   // turn 2
   ["battle.skill", "4-1"],
   "battle.summon",
-  ["battle.skill", "4-1"],
   "battle.attack",
 
   // battle 3
