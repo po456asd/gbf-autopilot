@@ -18,11 +18,16 @@ function startIo(tab) {
       console.log("SEND", id, {action, payload});
       chrome.tabs.sendMessage(tab.id, {action, payload, timeout}, (data) => {
         console.log("RECV", id, data);
-        if (!data && socket) {
-          return setTimeout(sendMessage, 500);
+        if (data == undefined && socket) {
+          setTimeout(sendMessage, 500);
+          return;
         }
-        const {action, payload} = data;
-        socket.emit("action", {id, action, payload});
+        const {action, payload, success} = data;
+        if (success) {
+          socket.emit("action", {id, action, payload});
+        } else {
+          socket.emit("action.fail", {id, action, payload});
+        }
       });
     }
     sendMessage();
@@ -35,12 +40,16 @@ function startIo(tab) {
 var currentTab;
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   switch (request) {
+  case "CHECK":
+    sendResponse(!!socket);
+    break;
   case "START":
     if (!currentTab) {
       throw new Error("No tab loaded!");
     }
     startIo(currentTab);
     console.log("Started socket");
+    sendResponse("OK");
     break;
   case "STOP":
     if (!socket) {
@@ -49,6 +58,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     socket.disconnect();
     socket = null;
     console.log("Stopped socket");
+    sendResponse("OK");
     break;
   case "LOADED":
     chrome.pageAction.show(sender.tab.id);

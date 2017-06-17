@@ -27,8 +27,8 @@ class Window:
 		innerX = round(x1 + (w1 / 2)) * scale
 		innerY = round(y1 + (h1 / 2)) * scale
 
-		outerX = round(x3 + (w3 - w2 - 8))
-		outerY = round(y3 + (h3 - h2))
+		outerX = round(x3 + (w3 - w2 + 8))
+		outerY = round(y3 + (h3 - h2 - 8))
 
 		return (
 			outerX + innerX,

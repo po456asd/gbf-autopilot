@@ -5,24 +5,41 @@ import actionBattle from "./actions/battle";
 import actionScenario from "./actions/scenario";
 
 const actions = _.assign({
+  "location.change": function(hash) {
+    return this.sendAction("location.change", hash);
+  },
   "check": function(selector) {
-    return this.sendAction("element", selector, 500);
+    return this.sendAction("element", selector);
   },
   "wait": function(selector, timeout) {
-    return this.sendAction("element", selector, timeout);
+    return this.sendAction("element", {
+      selector,
+      retry: true
+    }, timeout);
+  },
+  "run": function(callback) {
+    return new Promise((resolve, reject) => {
+      const result = callback.apply(this);
+      if (result === false) {
+        reject();
+      } else {
+        resolve(result);
+      }
+    });
   },
 }, actionScenario, actionClick, actionSupport, actionBattle);
 
 export default class EventRun {
-  constructor(port, sendAction) {
-    this.port = port;
+  constructor(config, sendAction) {
+    this.config = config;
     this.sendAction = sendAction;
+    this.port = Number(this.config.controller_port);
     this.actions = _.reduce(actions, (result, action, name) => {
       result[name] = action.bind(this);
       return result;
     }, {});
     this._scenario = null;
-    console.log(this.actions);
+    this.running = false;
   }
 
   callAction(name, args) {
@@ -32,7 +49,10 @@ export default class EventRun {
     if (!_.isArray(args)) {
       args = [args];
     }
-    const handler = this.actions[name] || (() => this.sendAction(name, args));
+    const handler = this.actions[name] || (() => {
+      throw new Error(`No action named ${name}!`);
+    });
+    console.log("Action: " + name + "('" + args.join("', '") + "')");
     return handler.apply(this, args);
   }
 
@@ -45,10 +65,14 @@ export default class EventRun {
     }
   }
 
-  runScenario(initialScenario) {
+  runScenario(initialScenario, nextRun) {
     const next = () => {
-      setTimeout(() => this.runScenario(initialScenario), 500);
+      setTimeout(() => this.runScenario(initialScenario, true), 500);
     };
+
+    if (!nextRun) {
+      this.scenario(initialScenario);
+    }
 
     var current = this.scenario().shift();
     if (!current) {
@@ -72,17 +96,24 @@ export default class EventRun {
     };
 
     const successCallback = handleCallback(success);
-    const errorCallback = (err) => {
-      if (error) handleCallback(error)(err);
-      else console.error(err);
-    };
+    const errorCallback = handleCallback(error || ((next, actions, err) => {
+      console.error(err);
+    }));
 
-    this.callAction(action, args).then(successCallback, errorCallback);
+    if (this.running) {
+      this.callAction(action, args).then(successCallback, errorCallback);
+    }
     return this;
   }
 
   start(initialScenario) {
-    this.scenario(initialScenario);
+    this.running = true;
     this.runScenario(initialScenario);
+    return this;
+  }
+
+  stop() {
+    this.running = false;
+    return this;
   }
 }

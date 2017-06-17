@@ -1,19 +1,6 @@
-const nextHandler = function(next) {
-  next();
-};
-
-const support = [
-  ["click", ".icon-supporter-type-1"],
-  ["support", [
-    2040185000, // shiva
-    2040034000, // colossus
-    2040021000, // athena
-    2040171000, // sethlans
-    2040094000 // agni
-  ]],
-  ["click", ".se-quest-start"],
-  ["wait", ".btn-attack-start"],
-];
+const helpers = require("./helpers");
+const support = helpers.support;
+const nextHandler = helpers.nextHandler;
 
 const battle = [
   // set CA to hold
@@ -102,13 +89,13 @@ const nmBattle = [
   // turn 5, ougi
   ["battle.skill", "4-1"],
   ["battle.skill", "4-2"],
+  ["battle.skill", "2-3"],
   "battle.summon",
   ["battle.ca", true],
   "battle.attack",
 
   // turn 6
   ["battle.ca", false],
-  ["battle.skill", "2-3"],
   ["battle.skill", "3-1"],
   "battle.attack",
 
@@ -131,19 +118,16 @@ const nmBattle = [
   ["battle.skill", "3-3"],
   "battle.attack",
 
-  // turn 10, ougi
+  // turn 10, ougi and cycle the remaining attacks
   ["battle.ca", true],
-  "battle.attack",
-
-  // expect result screen
-  "battle.result"
+  "battle.cycle.attack"
 ];
 
 const nightmare = [
   ["click", ".btn-stage-detail.ex-hell"],
   ["click", ".btn-set-quest[data-quest-id='719301']"],
-  ["merge", support],
-  ["switch", nmBattle]
+  ["merge", [support]],
+  ["switch", [nmBattle]]
 ];
 
 const preBattle = [
@@ -154,8 +138,8 @@ const preBattle = [
   }, nextHandler],
   ["click", ".btn-stage-detail[data-key='6015_2']"],
   ["click", ".btn-set-quest[data-quest-id='719281']"],
-  ["merge", support],
-  ["switch", battle]
+  ["merge", [support]],
+  ["switch", [battle]]
 ];
 
 module.exports = preBattle;

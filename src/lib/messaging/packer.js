@@ -1,5 +1,3 @@
-import shortid from "shortid";
-
-export default function(action, payload) {
-  return {action, payload};
+export default function(action, payload, success=true) {
+  return {action, payload, success};
 }

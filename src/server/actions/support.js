@@ -18,7 +18,7 @@ export default {
             return;
           }
         }
-        this.actions.click(selector, 1000)
+        this.actions.click(selector, 350)
           .then(resolve, () => {
             console.log(`Summon '${id}' not found`);
             clickSummon();
