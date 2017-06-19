@@ -38,7 +38,7 @@ function startIo(tab) {
 }
 
 var currentTab;
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request) {
   case "CHECK":
     sendResponse(!!socket);

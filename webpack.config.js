@@ -3,9 +3,10 @@ const resolve = require("path").resolve;
 module.exports = {
   devtool: "cheap-module-source-map",
   entry: {
-    background: "./src/background.js",
-    contentscript: "./src/contentscript.js",
-    popup: "./src/popup.js"
+    background: "./src/background",
+    contentscript: "./src/contentscript",
+    inject: "./src/inject",
+    popup: "./src/popup"
   },
   output: {
     filename: "[name].js",

@@ -2,7 +2,20 @@ import {actions} from "./contentscript/actions";
 import packer from "~/lib/messaging/packer";
 
 chrome.runtime.sendMessage("LOADED", (resp) => {
+  //window.postMessage(resp, "*");
   console.log(resp);
+});
+
+function injectScript(file) {
+  const el = document.createElement("script");
+  el.src = chrome.extension.getURL(file);
+  (document.head || document.documentElement).appendChild(el);
+}
+
+injectScript("inject.js");
+
+window.addEventListener("message", (evt) => {
+  if (evt.type != "battle.status") return;
 });
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
@@ -20,15 +33,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       setTimeout(callback, timeout || 1000 / 125);
     } else {
       // respond with null result anyway
-      done();
+      fail();
     }
   };
 
   var result;
-  if (!handler) {
-    result = actions.error(action);
-  } else {
+  if (handler) {
     result = handler(payload, done, fail, retry);
+  } else {
+    fail(actions.error(action));
+    return;
   }
 
   if (result !== undefined) {
@@ -36,6 +50,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   } else {
     setTimeout(() => {
       rejected = true;
+      fail();
     }, timeout);
     return true;
   }

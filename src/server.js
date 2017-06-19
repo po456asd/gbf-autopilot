@@ -10,23 +10,24 @@ import EventRun from "./server/EventRun";
 
 export default class Server {
   constructor(config, scenario) {
-    this.config = config.server;
+    this.config = config;
     this.scenario = scenario;
-    this.port = process.env.PORT || Number(this.config.listener_port);
-    this.controllerPort = Number(this.config.controller_port);
-    this.timeout = Number(this.config.action_timeout_in_ms);
+    this.port = process.env.PORT || Number(config.Server.ListenerPort);
+    this.controllerPort = Number(config.Server.ControllerPort);
+    this.timeout = Number(config.Server.ActionTimeoutInMs);
+    this.botTimeout = Number(config.Server.BotTimeoutInMins);
 
     this.listeners = {
-      "action": ::this.onAction,
+      "action": ::this.onActionSuccess,
       "action.fail": ::this.onActionFail,
       "disconnect": ::this.onDisconnect
     };
     this.sockets = {};
 
     this.app = Express();
-    this.setupExpress(this.app);
     this.server = http.Server(this.app);
     this.io = SocketIO(this.server);
+    this.setupExpress(this.app);
     this.setupSocket(this.io);
   }
 
@@ -55,7 +56,7 @@ export default class Server {
     const timer = setTimeout(() => {
       console.log("Bot reaches maximum time. Disconnecting...");
       this.stopSocket(socket.id);
-    }, this.config.bot_timeout_in_mins * 60 * 1000);
+    }, this.botTimeout * 60 * 1000);
     this.sockets[socket.id] = {
       socket, runner, timer,
       actions: {}
@@ -71,20 +72,24 @@ export default class Server {
     return this.sockets[socket.id].actions[id];
   }
 
-  onAction(socket, {id, payload}) {
+  onAction(socket, {id, payload}, callback) {
     const action = this.getAction(socket, id);
     // silently fail
     if (!action) return;
-    action.success(payload);
+    callback(action, payload);
     clearTimeout(action.timer);
   }
 
-  onActionFail(socket, {id, payload}) {
-    const action = this.getAction(socket, id);
-    // silently fail
-    if (!action) return;
-    action.fail(payload);
-    clearTimeout(action.timer);
+  onActionSuccess(socket, data) {
+    this.onAction(socket, data, (action, payload) => {
+      action.success(payload);
+    });
+  }
+
+  onActionFail(socket, data) {
+    this.onAction(socket, data, (action, payload) => {
+      action.fail(payload);
+    });
   }
 
   onDisconnect(socket) {
@@ -100,7 +105,8 @@ export default class Server {
     timeout = timeout || this.timeout;
     return new Promise((resolve, reject) => {
       const id = shortid.generate();
-      const expression = `'${id}' ${actionName}(${payload})`;
+      const json = JSON.stringify(payload);
+      const expression = `${actionName}(${json})`;
       const actions = this.sockets[socket.id].actions;
       const done = () => {
         delete actions[id];
@@ -130,8 +136,7 @@ export default class Server {
       data.id = id;
       data.timeout = timeout;
 
-      const json = JSON.stringify(payload);
-      console.log(`Socket: ${actionName}(${json})`);
+      console.log(`Socket: ${expression}`);
       socket.emit("action", data);
     });
   }
@@ -164,5 +169,6 @@ export default class Server {
       this.stopSocket(key);
     });
     this.sockets = {};
+    return this;
   }
 }

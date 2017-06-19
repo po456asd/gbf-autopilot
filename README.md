@@ -75,17 +75,17 @@ The configurations are stored inside the `config.ini` file of each application.
 ### Command server
 | Options       | Default | Description |
 |---------------|---------|-------------|
-| listener_port | 49544   | The port of the command server. |
-| controller_port | 49545 | The port of the control server. |
-| action_timeout_in_ms | 60000 | Maximum amount of time in milliseconds before an action (eg. clicks) timed out and generates an error. |
-| scenario | pina_hazard | The name of the scenario that the bot will use. |
+| ListenerPort | 49544   | The port of the command server. |
+| ControllerPort | 49545 | The port of the control server. |
+| ActionTimeoutInMs | 60000 | Maximum amount of time in milliseconds before an action (eg. clicks) timed out and generates an error. |
+| Scenario | PinaHazard | The name of the scenario that the bot will use. |
 
 ### Control server
 | Options       | Default | Description |
 |---------------|---------|-------------|
-| listener_port | 49544   | The port of the control server. |
-| window_title  | Granblue Fantasy - Google Chrome | The title of the browser window to lookup. |
-| input_tween | easeInOutCubic | Tween function to move the cursor used by [PyAutoGUI](https://github.com/asweigart/pyautogui). List of tween functions is listed [here](https://github.com/asweigart/pyautogui/blob/master/pyautogui/tweens.py). |
+| ListenerPort | 49544   | The port of the control server. |
+| WindowTitle  | Granblue Fantasy - Google Chrome | The title of the browser window to lookup. |
+| InputTween | easeInOutCubic | Tween function to move the cursor used by [PyAutoGUI](https://github.com/asweigart/pyautogui). List of tween functions is listed [here](https://github.com/asweigart/pyautogui/blob/master/pyautogui/tweens.py). |
 
 ## Scenarios
 The bot uses scenario to determine what action it should take based on the logic and state of the game. The scenario itself is written in JavaScript and stored in the `server/scenarios` directory. Example of a scenario can be found [here](server/scenarios/pina_hazard.js).
@@ -96,21 +96,21 @@ All scenarios must be stored inside the `server/scenarios` directory. The scenar
 Here are some ways to write the action inside a scenario:
 ```js
 // The simplest way to write the action is by using string
-String action_name
+String actionName
 
 // More general way to write the action is by using array
 // This is for single argument
-[String action_name, String|Number arg] 
+[String actionName, String|Number arg] 
 
 // This is for multiple arguments
-[String action_name, Array<String|Number> array_of_args]
+[String actionName, Array<String|Number> arrayOfArgs]
 
 // The most advanced use is to call the action and use a function to determine what next action should be taken
 [
-    String action_name, 
-    Array<String|Number> array_of_args, 
-    Function success_callback(next, actions, result),
-    Function error_callback(next, actions, error)
+    String actionName, 
+    Array<String|Number> arrayOfArgs, 
+    Function successCallback(next, actions, result),
+    Function errorCallback(next, actions, error)
 ]
 ```
 
@@ -138,17 +138,17 @@ module.exports = [
 Some actions' arguments can be written in different ways such as for `battle.skill`. Notice how the the arguments for the `battle.skill` can be written either as a single string or an array of numbers.
 
 ### Using the scenario
-The filename of the scenario is used to identify the scenario that the bot will use. For example, to load the scenario saved as `server/scenarios/pina_hazard.js`, you should have the following options inside of the **command server** config file:
+The filename of the scenario is used to identify the scenario that the bot will use. For example, to load the scenario saved as `server/scenarios/PinaHazard.js`, you should have the following options inside of the **command server** config file:
 ```ini
-[server]
+[Server]
 # ...
-scenario = pina_hazard
+Scenario = PinaHazard
 # ...
 ```
-Notice that the value of the option as `pina_hazard` does not include the extension (`.js`) and the directory path (`server/scenarios`).
+Notice that the value of the option as `PinaHazard` does not include the extension (`.js`) and the directory path (`server/scenarios`).
 
 ### Actions
-The bot currently has limited number of actions (it mostly revolves around mouse clicks). The actions assume that the **Viramate** extension is installed with quick skill buttons and auto-skip/next enabled.
+The bot currently has limited number of actions (it mostly revolves around mouse clicks).
 
 *This section is incomplete*
 

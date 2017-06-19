@@ -4,8 +4,10 @@ export default {
   "location": function() {
     return packer("location", window.location);
   },
-  "location.change": function(hash) {
+  "location.change": function(hash, done) {
     window.location.hash = hash;
-    return packer("location.change", "OK");
+    window.setTimeout(() => {
+      done("OK");
+    }, 5000);
   }
 };

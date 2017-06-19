@@ -5,9 +5,6 @@ import actionBattle from "./actions/battle";
 import actionScenario from "./actions/scenario";
 
 const actions = _.assign({
-  "location.change": function(hash) {
-    return this.sendAction("location.change", hash);
-  },
   "check": function(selector) {
     return this.sendAction("element", selector);
   },
@@ -33,7 +30,7 @@ export default class EventRun {
   constructor(config, sendAction) {
     this.config = config;
     this.sendAction = sendAction;
-    this.port = Number(this.config.controller_port);
+    this.port = Number(this.config.Server.ControllerPort);
     this.actions = _.reduce(actions, (result, action, name) => {
       result[name] = action.bind(this);
       return result;
@@ -50,7 +47,7 @@ export default class EventRun {
       args = [args];
     }
     const handler = this.actions[name] || (() => {
-      throw new Error(`No action named ${name}!`);
+      return this.sendAction.apply(this, [name].concat(args));
     });
     console.log("Action: " + name + "('" + args.join("', '") + "')");
     return handler.apply(this, args);
@@ -66,8 +63,10 @@ export default class EventRun {
   }
 
   runScenario(initialScenario, nextRun) {
+    if (!this.running) return;
+
     const next = () => {
-      setTimeout(() => this.runScenario(initialScenario, true), 500);
+      setTimeout(() => this.runScenario(initialScenario, true), 1);
     };
 
     if (!nextRun) {

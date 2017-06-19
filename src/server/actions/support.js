@@ -18,11 +18,11 @@ export default {
             return;
           }
         }
-        this.actions.click(selector, 350)
-          .then(resolve, () => {
-            console.log(`Summon '${id}' not found`);
-            clickSummon();
-          });
+        this.actions.check(selector).then(() => {
+          this.actions.click(selector).then(resolve, reject);
+        }, () => {
+          clickSummon();
+        });
       };
       clickSummon();
     });

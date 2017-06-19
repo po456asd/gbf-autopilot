@@ -1,7 +1,11 @@
 import _ from "lodash";
 
+function query(selector) {
+  return document.querySelectorAll(selector);
+}
+
 function realPoint(pnt, offset, scale) {
-  return Math.round(offset + ((pnt - offset) * scale));
+  return Math.round(pnt * scale * window.devicePixelRatio);
 }
 
 function checkStyle(el) {
@@ -44,13 +48,13 @@ export default {
 
     function findElement() {
       var rect, element;
-      const cnt = document.querySelector("#mobage-game-container");
+      const cnt = query("#mobage-game-container")[0];
       if (!cnt) {
         return retry(findElement, 150);
       }
       const offset = cnt.parentNode.getBoundingClientRect();
       const scale = Number(cnt.style.zoom);
-      const elements = document.querySelectorAll(selector);
+      const elements = query(selector);
       elements.forEach((el) => {
         if (!checkStyle(el)) {
           return;
@@ -84,7 +88,6 @@ export default {
           fail(selector);
         }
       } else {
-        console.log(rect, element);
         cb(rect, element, scale);
       }
     }
