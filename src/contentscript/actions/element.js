@@ -71,10 +71,12 @@ export default {
         } else if (real.x > windowRect.width || real.x < 0) {
           return;
         } else if (real.y > windowRect.height || real.y < 0) {
+          console.log("BEFORE", real);
           const before = cnt.parentNode.scrollTop;
           cnt.parentNode.scrollTop += real.y;
           const after = cnt.parentNode.scrollTop;
           real.y -= after - before;
+          console.log("AFTER", real);
         }
         rect = real;
         element = el;

@@ -24,6 +24,11 @@ const actions = _.assign({
       }
     });
   },
+  "timeout": function(timeout) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, timeout || 1);
+    });
+  }
 }, actionScenario, actionClick, actionSupport, actionBattle);
 
 export default class EventRun {
@@ -49,7 +54,7 @@ export default class EventRun {
     const handler = this.actions[name] || (() => {
       return this.sendAction.apply(this, [name].concat(args));
     });
-    console.log("Action: " + name + "('" + args.join("', '") + "')");
+    console.log("Action: " + name + "(" + args.map((val) => JSON.stringify(val)).join(", ") + ")");
     return handler.apply(this, args);
   }
 

@@ -1,23 +1,11 @@
 {
-  "name": "Granblue Autopilot",
-  "version": "1.0.0",
-  "manifest_version": 2,
-  "description": "Granblue Autopilot is a farming/grinding bot for Granblue Fantasy",
-  "icons": {
-    "32": "images/icon-32.png",
-    "128": "images/icon-128.png"
-  },
   "background": {
     "scripts": [
       "dist/background.js"
     ]
   },
-  "page_action": {
-    "default_icon": {
-      "32": "images/icon-32.png"
-    },
-    "default_popup": "pages/popup.html"
-  },
+  "key": "MIIEowIBAAKCAQEAtaNMfjVQm49IDcgLBQMnHlyNC1aczGk2F17AMI6JnK/uOtFGXp1AnLqI+u4et1Rvu0hF0trGujcfVdrhUUor0NEaeGlin+T0ATJd2sp7lViUQJlp9urMyS+YF1Mlwn6qN3j+Wi4/HNU5KLDSgg6WIyQRIg2Jw2PBFAYxlJ8o8LEXcUfVgdwnul7noC4EHUOca8MvEw/Jt8dnTkIXV5tcaDDrkIBRaUmkp6Zd3eZwhc6ZORbC3lpaOeVzFXoPdIdTxudB4t8cThTbZTk9jIHtkvZvpyCkdCsnMuAHqrILcxTma7136R8eOEdjh0xeSNS8MbimHi4NtK51lD8ldNkIbQIDAQABAoIBAFGf18Ejnly5r8yZp/IRr6OiPbPpsT7ezPMFnmJzu32RRgJihzf/fMixvtrc5SrHpApKeS4/KG0IVmmTmguYxEXrofSYjzyBe/GJu8mVkqHTk5PQHWFbtLl4TOW2dNKJb17MXakS/UOswin6BC9z9J5IF/bwlIccreicu+0o9RHsEWiBAca4ZKTNHfElncH5zyA427lxR8mZkxhiE9TVghFE7gJ6ZFjq1FMORE3B58kIBa2R7Nh3cFK+e0NwGeiULJadvY/Q6FegEqgIzClXMsBMDStj9IizQ01rGbdaeGymkvVY328DBum2gTC5vI1DaTIrBYgYoZxdktdj4+w4ToECgYEA2GBqHg9/rmG4r2ZVddoYodNOhcUAXQNS8WwrN5cS9oK7M5miH2+FD1zDNGU0N9LNSAUAfKGdZZkQ956Ymn4q2fTBNP3blO2H6jU8mdYapMOXBubStplnERCCaYWYnLucvidBz1QZMAs/Klz3G1rnOvlyd8pwKvbF36xJfLbx+aECgYEA1uZbSxbu3BBxjflnfpN9TcOhimsO3cbYS579vg+jsWr5pkWQw8m9pznYWHQl8osb0qd/3/EPP5cG1CCqj7P1kKYi2ZrEk7lz7oAk74+s+HqvLxum3JygL9K0etLgU0hLJIoGFAnjdzSJ6jFf4ZMQ/eqAVfRrXwsRxLTQ2lBKE00CgYBvtMbUIhg+xMB9/QzdvOy+jsKZGO1pF5A4hymAl4P4s+FFcGlcZUyCc9drM1xT/YZxSfPIY/9INk+mJsCN8djZkRw16WD1b/OdHELfAMPckAVmUMAz+NpW2vkY1RnGwKzZFpdJHBes0AGaM0h3XOTHc4R/B4oFBEV/hgiiVCh0QQKBgA+kIIzslGIMCFfPCUtbLMmWLZHHjQNzT5bhcZJ9zOpC4PzLH2hArL8ZJLf7bC+lFFdWvaXtA7EbKvIRlphy/rKShQLVku01mEyJoyaUjIBhXZLOLmzsMXSJn305D/6/ykhUi3C174pjlo4nHdVrQNdaVBDtg0sdoSNyDal2Io4ZAoGBAKvF3VZncUuhgfBL1cF7Nj8Orhxhj55CdhzUhgR+9VYuuShpjvbjoJyy3e+OVQ8hD42RULKVGDu5jWU7ejVpvAb+MlWda6vTjyg1SIyJTGY0F9KX9PCzKiRwbYdx0SJ/NUKpUrElpWgJynEKwK0BJWgOLKRJ8nbl2tnfYecGn8mL",
+  "manifest_version": 2,
   "permissions": [
     "http://game.granbluefantasy.jp/*",
     "http://gbf.game.mbga.jp/*",
@@ -26,20 +14,30 @@
     "notifications",
     "tabs"
   ],
+  "page_action": {
+    "default_popup": "pages/popup.html",
+    "default_icon": {
+      "32": "images/icon-32.png"
+    }
+  },
+  "version": "1.0.0",
+  "icons": {
+    "32": "images/icon-32.png",
+    "128": "images/icon-128.png"
+  },
+  "description": "Granblue Autopilot is a farming/grinding bot for Granblue Fantasy",
+  "name": "Granblue Autopilot",
   "content_scripts": [
     {
-      "matches": [
-        "http://game.granbluefantasy.jp/*",
-        "http://gbf.game.mbga.jp/*"
-      ],
       "js": [
         "dist/contentscript.js"
       ],
+      "all_frames": false,
       "run_at": "document_start",
-      "all_frames": false
+      "matches": [
+        "http://game.granbluefantasy.jp/*",
+        "http://gbf.game.mbga.jp/*"
+      ]
     }
-  ],
-  "web_accessible_resources": [
-    "inject.js"
   ]
 }

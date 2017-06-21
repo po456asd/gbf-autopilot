@@ -2,20 +2,7 @@ import {actions} from "./contentscript/actions";
 import packer from "~/lib/messaging/packer";
 
 chrome.runtime.sendMessage("LOADED", (resp) => {
-  //window.postMessage(resp, "*");
   console.log(resp);
-});
-
-function injectScript(file) {
-  const el = document.createElement("script");
-  el.src = chrome.extension.getURL(file);
-  (document.head || document.documentElement).appendChild(el);
-}
-
-injectScript("inject.js");
-
-window.addEventListener("message", (evt) => {
-  if (evt.type != "battle.status") return;
 });
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {

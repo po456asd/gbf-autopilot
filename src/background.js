@@ -4,13 +4,31 @@ import io from "socket.io-client";
 liveReload();
 
 const serverUrl = window.serverUrl || "http://localhost:49544/";
+const subscribers = [];
+const broadcast = (payload) => {
+  subscribers.forEach((tabId) => {
+    chrome.tabs.sendMessage(tabId, payload);
+  });
+};
 
 var socket;
+var running = false;
 function startIo(tab) {
-  if (socket) {
-    socket.disconnect();
+  if (running) {
+    throw new Error("Socket already running!");
   }
   socket = io(serverUrl);
+  socket.on("connect", () => {
+    running = true;
+    broadcast("START");
+    console.log("Started socket");
+  });
+  socket.on("disconnect", () => {
+    running = false;
+    socket = null;
+    broadcast("STOP");
+    console.log("Stopped socket");
+  });
   socket.on("action", ({action, id, payload, timeout}) => {
     var rejected = false;
     function sendMessage() {
@@ -41,14 +59,19 @@ var currentTab;
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request) {
   case "CHECK":
-    sendResponse(!!socket);
+    sendResponse(running);
+    break;
+  case "SUBSCRIBE":
+    subscribers.push(sender.tab.id);
+    break;
+  case "UNSUBSCRIBE":
+    subscribers.splice(subscribers.indexOf(sender.tab.id), 1);
     break;
   case "START":
     if (!currentTab) {
       throw new Error("No tab loaded!");
     }
     startIo(currentTab);
-    console.log("Started socket");
     sendResponse("OK");
     break;
   case "STOP":
@@ -56,8 +79,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       throw new Error("Socket not connected!");
     }
     socket.disconnect();
-    socket = null;
-    console.log("Stopped socket");
     sendResponse("OK");
     break;
   case "LOADED":

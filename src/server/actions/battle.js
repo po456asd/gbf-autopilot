@@ -4,17 +4,24 @@ import battleLogic from "./battle/logic";
 const nextHandler = (next) => next();
 const backHandler = [
   ["check", ".btn-command-back", (next, command, {selector}) => {
-    command.dblclick(selector).then(next);
+    command.click(selector).then(next);
   }, nextHandler]
 ];
-const logHandler = [
-  ["check", ".ability.log", (next, command, {selector}) => {
-    command.dblclick(selector).then(next);
+const closeScenario = [
+  ["check", ".btn-usual-cancel,.btn-usual-close", (next, command, {selector}) => {
+    command.merge([
+      ["click", selector],
+      ["timeout", 3000],
+      ["merge", [closeScenario]]
+    ]).then(next);
   }, nextHandler]
 ];
 const resultScenario = [
   ["wait", ".btn-usual-ok"],
-  ["click", ".btn-usual-ok"]
+  ["click", ".btn-usual-ok"],
+  ["click", ".btn-control"],
+  ["timeout", 3000],
+  ["merge", [closeScenario]]
 ];
 const selectors = {
   "attack": ".btn-attack-start.display-on"
@@ -23,7 +30,7 @@ const selectors = {
 function checkBeforeClick(selector) {
   return ["merge", [[
     ["move", selector],
-    ["check", ".ability-log", (next, command) => {
+    ["check", ".log-ability", (next, command) => {
       command["click.immediate"]().then(next);
     }, nextHandler],
     ["click.immediate"]
@@ -54,12 +61,12 @@ export default {
     }
     const [chara, number] = skill;
     if (this.config.Viramate.QuickSkill) {
-      return this.actions.dblclick(`.ability-character-num-${chara}-${number}`);
+      return this.actions.click(`.ability-character-num-${chara}-${number}`);
     }
 
     const charaCommand = [
       ["merge", [backHandler]],
-      ["dblclick", ".btn-command-character.lis-character" + (chara-1)],
+      checkBeforeClick(".btn-command-character.lis-character" + (chara-1))
     ];
 
     return this.actions.merge([
@@ -75,6 +82,7 @@ export default {
       ["check", ".btn-result", (next, command, {selector}) => {
         command.merge([
           ["click", selector],
+          ["timeout", 3000],
           ["merge", [check]]
         ]).then(next);
       }, nextHandler],
@@ -102,15 +110,16 @@ export default {
   },
   "battle.summon": function(number) {
     if (this.config.Viramate.QuickSummon) {
-      return this.actions.dblclick(".quick-summon.available");
+      return this.actions.click(".quick-summon.available");
     }
     const selector = number ?
       `.lis-summon[pos="${number}"]` :
       ".btn-summon-available";
     return this.actions.merge([
       ["merge", [backHandler]],
-      checkBeforeClick(".btn-command-summon"),
-      checkBeforeClick(selector),
+      ["click", ".btn-command-summon"],
+      ["timeout", 1000],
+      ["click", selector],
       ["check", ".btn-usual-ok", (next, command, {selector}) => {
         command.click(selector).then(next);
       }, nextHandler]

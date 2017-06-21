@@ -54,6 +54,7 @@ export default class Server {
       return this.sendAction(socket, action, payload, timeout);
     });
     const timer = setTimeout(() => {
+      if (!this.sockets[socket.id]) return;
       console.log("Bot reaches maximum time. Disconnecting...");
       this.stopSocket(socket.id);
     }, this.botTimeout * 60 * 1000);
@@ -95,7 +96,9 @@ export default class Server {
   onDisconnect(socket) {
     console.log(`Client '${socket.id}' disconnected!`);
     this.makeRequest("stop").then(() => {
-      this.stopSocket(socket.id);
+      if (this.sockets[socket.id]) {
+        this.stopSocket(socket.id);
+      }
     }, (err) => {
       console.error(err);
     });
@@ -104,23 +107,23 @@ export default class Server {
   sendAction(socket, actionName, payload, timeout) {
     timeout = timeout || this.timeout;
     return new Promise((resolve, reject) => {
+      var resolved = false;
       const id = shortid.generate();
       const json = JSON.stringify(payload);
       const expression = `${actionName}(${json})`;
       const actions = this.sockets[socket.id].actions;
       const done = () => {
+        resolved = true;
+        clearTimeout(actions[id].timer);
         delete actions[id];
       };
 
-      var resolved = false;
       actions[id] = {
         success: (payload) => {
-          resolved = true;
           resolve(payload);
           done();
         },
         fail: (payload) => {
-          resolved = true;
           reject(payload);
           done();
         },
@@ -135,6 +138,7 @@ export default class Server {
       const data = packer(actionName, payload);
       data.id = id;
       data.timeout = timeout;
+      data.type = "response";
 
       console.log(`Socket: ${expression}`);
       socket.emit("action", data);
@@ -146,13 +150,13 @@ export default class Server {
       throw new Error("Socket ID not found!");
     }
     const {socket, runner, timer, actions} = this.sockets[id];
+    delete this.sockets[id];
     forEach(actions, ({timer}) => {
       clearTimeout(timer);
     });
     clearTimeout(timer);
     socket.disconnect();
     runner.stop();
-    delete this.sockets[id];
     return this;
   }
 
@@ -165,8 +169,8 @@ export default class Server {
 
   stop() {
     console.log("Stopping...");
-    Object.keys(this.sockets).forEach((key) => {
-      this.stopSocket(key);
+    forEach(this.sockets, (socket) => {
+      socket.socket.disconnect();
     });
     this.sockets = {};
     return this;

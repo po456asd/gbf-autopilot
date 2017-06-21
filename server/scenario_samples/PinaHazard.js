@@ -131,6 +131,7 @@ const nightmare = [
 ];
 
 const preBattle = [
+  ["location.change", "#quest/extra/event"],
   ["wait", ".btn-stage-detail"],
   ["check", ".btn-stage-detail.ex-hell", function(next, actions) {
     actions.switch(nightmare).then(next);

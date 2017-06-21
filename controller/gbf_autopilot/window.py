@@ -2,6 +2,7 @@ import win32gui
 import pyautogui
 import random
 import math
+import time
 
 DEFAULT_TWEEN = pyautogui.easeInOutCubic
 
@@ -27,12 +28,18 @@ class Window:
         innerX = round(x1 + (w1 / 2)) * scale
         innerY = round(y1 + (h1 / 2)) * scale
 
-        outerX = round(x3 + (w3 - w2))
+        outerX = round(x3 + (w3 - w2 - 8))
         outerY = round(y3 + (h3 - h2 - 8))
 
+        # add deviation
+        devX = w1 * scale / 4
+        devY = h1 * scale / 4
+        devX = round(random.uniform(-devX, devX))
+        devY = round(random.uniform(-devY, devY))
+
         return (
-            outerX + innerX,
-            outerY + innerY
+            outerX + innerX + devX,
+            outerY + innerY + devY
         )
 
     def getDistance(self, source, target):
@@ -42,19 +49,26 @@ class Window:
 
     def getDuration(self, target):
         distance = self.getDistance(pyautogui.position(), target)
-        return max(self.duration, random.uniform(0, distance / 5000))
+        duration = max(self.duration, random.uniform(0, distance / 600))
+        return duration
 
     def click(self, elementRect=None, windowRect=None, scale=1.0, clicks=1):
         if elementRect is None or windowRect is None:
             pyautogui.click(clicks=clicks)
             return
         (x, y) = self.getPosition(elementRect, windowRect, scale)
+        print("element", elementRect)
+        print("window inner", windowRect)
+        print("window outer", self.getRect())
+        print("position", (x, y))
         pyautogui.click(
             x, y,
             duration=self.getDuration((x, y)),
             tween=self.tween,
-            clicks=clicks
+            clicks=clicks,
+            interval=0.25
         )
+        self.delay()
     
     def moveTo(self, elementRect, windowRect, scale=1.0):
         (x, y) = self.getPosition(elementRect, windowRect, scale)
@@ -63,6 +77,10 @@ class Window:
             duration=self.getDuration((x, y)),
             tween=self.tween
         )
+        self.delay()
+
+    def delay(self):
+        time.sleep(random.uniform(0.08, 0.15))
 
 if __name__ == '__main__':
     window = Window('Granblue Fantasy - Google Chrome')

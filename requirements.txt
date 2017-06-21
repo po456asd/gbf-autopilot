@@ -3,3 +3,4 @@ flask_cors
 pywin32
 pyautogui
 requests
+pyopenssl

@@ -5,7 +5,6 @@ module.exports = {
   entry: {
     background: "./src/background",
     contentscript: "./src/contentscript",
-    inject: "./src/inject",
     popup: "./src/popup"
   },
   output: {

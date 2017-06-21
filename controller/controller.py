@@ -42,9 +42,9 @@ def start():
 @app.route('/stop', methods=['POST'])
 def stop():
     global commandStarted
-    print("Command stopped")
+    print('Command stopped')
     commandStarted = False
-    return "OK"
+    return 'OK'
 
 def doClick(json, clicks=1):
     if not commandStarted:
@@ -59,13 +59,12 @@ def doClick(json, clicks=1):
 @app.route('/click', methods=['POST'])
 def click():
     json = request.json
-    print(json)
     return doClick(json)
 
 @app.route('/click/immediate', methods=['POST'])
 def clickImmediate():
     if not commandStarted:
-        return "FAIL"
+        return 'FAIL'
     window.click()
     return 'OK'
 
@@ -90,12 +89,12 @@ def getKeyPressed(keyCode):
     return retval == 1
 
 def stopCommandServer():
-    print("Stopping command server...")
+    print('Stopping command server...')
     try:
-        requests.post("http://localhost:%d/stop" % COMMAND_PORT)
-        print("Command server stopped")
+        requests.post('http://localhost:%d/stop' % COMMAND_PORT)
+        print('Command server stopped')
     except:
-        print("Failed to stop the command server!")
+        print('Failed to stop the command server!')
 
 def listenForEscape():
     running = True
