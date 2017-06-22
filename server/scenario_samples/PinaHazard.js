@@ -126,8 +126,8 @@ const nmBattle = [
 const nightmare = [
   ["click", ".btn-stage-detail.ex-hell"],
   ["click", ".btn-set-quest[data-quest-id='719301']"],
-  ["merge", [support]],
-  ["switch", [nmBattle]]
+  ["merge", support],
+  ["switch", nmBattle]
 ];
 
 const preBattle = [
@@ -138,8 +138,8 @@ const preBattle = [
   }, nextHandler],
   ["click", ".btn-stage-detail[data-key='6015_2']"],
   ["click", ".btn-set-quest[data-quest-id='719281']"],
-  ["merge", [support]],
-  ["switch", [battle]]
+  ["merge", support],
+  ["switch", battle]
 ];
 
 module.exports = preBattle;

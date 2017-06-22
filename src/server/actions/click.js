@@ -1,25 +1,25 @@
 import axios from "axios";
 
-function request(self, path, data) {
+export function request(self, data, path="click") {
   return axios.post(`http://localhost:${self.port}/${path}`, data);
 }
 
-function executeQuery(self, selector, timeout) {
+export function executeQuery(self, selector, timeout) {
   return self.sendAction("element", {selector, retry: true}, timeout);
 }
 
-function executeClick(self, path, data) {
-  return request(self, path, data);
+export function executeClick(self, data, path) {
+  return request(self, data, path);
 }
 
-function doClick(self, selector, path="click", timeout) {
+export function doClick(self, selector, path="click", timeout) {
   return new Promise((resolve, reject) => {
     executeQuery(self, selector, timeout).then((data) => {
       if (!data) {
         setTimeout(() => doClick(resolve, reject), 500);
         return;
       }
-      executeClick(self, path, data).then(resolve, reject);
+      executeClick(self, data, path).then(resolve, reject);
     });
   });
 }

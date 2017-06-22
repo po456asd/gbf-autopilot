@@ -1,9 +1,10 @@
 import _ from "lodash";
 
-function handleScenario(self, scenario, callback) {
+function handleScenario(self, args, callback) {
+  var scenario = _.values(args);
   return new Promise((resolve, reject) => {
     if (scenario) {
-      callback();
+      callback(scenario);
       resolve(self.scenario());
     } else {
       reject(new Error("No scenario set!"));
@@ -12,15 +13,21 @@ function handleScenario(self, scenario, callback) {
 }
 
 export default {
-  "switch": function(scenario) {
-    return handleScenario(this, scenario, () => {
+  "switch": function() {
+    return handleScenario(this, arguments, (scenario) => {
       this.scenario(scenario);
     });
   },
-  "merge": function(scenario) {
-    return handleScenario(this, scenario, () => {
+  "merge": function() {
+    return handleScenario(this, arguments, (scenario) => {
       const splice = Array.prototype.splice;
       splice.apply(this.scenario(), [0, 0].concat(scenario));
     });
-  }
+  },
+  "switch.array": function(arr) {
+    return this.actions.switch.apply(this, arr);
+  },
+  "merge.array": function(arr) {
+    return this.actions.merge.apply(this, arr);
+  },
 };

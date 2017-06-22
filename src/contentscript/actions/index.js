@@ -1,5 +1,6 @@
 import actionElement from "./element";
 import actionLocation from "./location";
+import actionSupport from "./support";
 import packer from "~/lib/messaging/packer";
 import assign from "lodash/assign";
 
@@ -18,7 +19,7 @@ export const actions = assign({
   "error": function(name) {
     return packer("error", `Action ${name} not found!`);
   }
-}, actionElement, actionLocation);
+}, actionElement, actionLocation, actionSupport);
 
 export function sendAction(action, args) {
   const handler = actions[action];

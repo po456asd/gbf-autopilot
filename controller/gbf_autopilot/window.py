@@ -57,16 +57,12 @@ class Window:
             pyautogui.click(clicks=clicks)
             return
         (x, y) = self.getPosition(elementRect, windowRect, scale)
-        print("element", elementRect)
-        print("window inner", windowRect)
-        print("window outer", self.getRect())
-        print("position", (x, y))
         pyautogui.click(
             x, y,
             duration=self.getDuration((x, y)),
             tween=self.tween,
             clicks=clicks,
-            interval=0.25
+            interval=random.uniform(0.15, 0.35)
         )
         self.delay()
     

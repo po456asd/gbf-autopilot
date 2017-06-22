@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
   var result;
   if (handler) {
-    result = handler(payload, done, fail, retry);
+    result = handler.call(actions, payload, done, fail, retry);
   } else {
     fail(actions.error(action));
     return;
