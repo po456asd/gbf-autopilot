@@ -49,7 +49,8 @@ class Window:
 
     def getDuration(self, target):
         distance = self.getDistance(pyautogui.position(), target)
-        duration = max(self.duration, random.uniform(0, distance / 600))
+        duration = random.uniform(0.35, 0.55)
+        duration = max(duration, random.uniform(0, distance / 1500))
         return duration
 
     def click(self, elementRect=None, windowRect=None, scale=1.0, clicks=1):

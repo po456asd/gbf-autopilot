@@ -35,12 +35,6 @@ export function translateElements(elements) {
   const offset = cnt.parentNode.getBoundingClientRect();
   const scale = Number(cnt.style.zoom);
 
-  var footerHeight = 0;
-  const footer = query(".cnt-pc-global-footer")[0];
-  if (footer) {
-    footerHeight = footer.getBoundingClientRect().height * scale;
-  }
-
   const result = {
     scale, 
     window: windowRect,
@@ -61,11 +55,6 @@ export function translateElements(elements) {
       return;
     } else if (real.x > windowRect.width || real.x < 0) {
       return;
-    } else if (real.y > windowRect.height - footerHeight || real.y < 0) {
-      const before = cnt.parentNode.scrollTop;
-      cnt.parentNode.scrollTop += real.y;
-      const after = cnt.parentNode.scrollTop;
-      real.y -= after - before;
     }
     result.rects.push(real);
   });
@@ -73,13 +62,38 @@ export function translateElements(elements) {
 }
 
 export function translateElement(el) {
-  var result = translateElements([el]);
+  // is a selector
+  if (_.isString(el)) {
+    el = query(el);
+  } else {
+    el = [el];
+  }
+  var result = translateElements(el);
   if (!result) {
     return null;
   }
 
-  result = _.assign(result, result.rects[0]);
+  const rect = result.rects[0];
+  const windowRect = result.window;
+  const scale = result.scale;
+
+  var footerHeight = 0;
+  const footer = query(".cnt-pc-global-footer")[0];
+  if (footer) {
+    footerHeight = footer.getBoundingClientRect().height * scale;
+  }
+
+  if (rect.y > windowRect.height - footerHeight || rect.y < 0) {
+    const cnt = query("#mobage-game-container")[0];
+    const before = cnt.parentNode.scrollTop;
+    cnt.parentNode.scrollTop += rect.y;
+    const after = cnt.parentNode.scrollTop;
+    rect.y -= after - before;
+  }
+
+  result = _.assign(result, rect);
   delete result.rects;
+
   return result;
 }
 

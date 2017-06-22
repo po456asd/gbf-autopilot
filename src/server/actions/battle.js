@@ -24,7 +24,7 @@ const resultScenario = [
   closeScenario,
   ["timeout", 3000],
   ["click", ".btn-control"],
-  ["timeout", 3000],
+  ["timeout", 1000],
   ["check", ".pop-friend-request", (next, command) => {
     command.merge(
       ["click", ".btn-usual-cancel"],
