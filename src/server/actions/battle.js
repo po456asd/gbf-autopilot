@@ -89,7 +89,7 @@ export default {
 
     return this.actions.merge(
       ["check", `.prt-command-chara.chara${chara}`, nextHandler, (next, command) => {
-        command.merge(charaCommand).then(next);
+        command["merge.array"](charaCommand).then(next);
       }],
       checkBeforeClick(`.ability-character-num-${chara}-${number}`)
     );
