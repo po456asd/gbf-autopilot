@@ -9,3 +9,6 @@ insert_final_newline = true
 
 [*.{js,json,md,html}]
 indent_size = 2
+
+[*.ini]
+end_of_line = crlf
