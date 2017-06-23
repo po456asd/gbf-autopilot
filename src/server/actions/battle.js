@@ -1,6 +1,10 @@
 import _ from "lodash";
 import battleLogic from "./battle/logic";
 
+const selectors = {
+  "attack": ".btn-attack-start.display-on",
+  "next": ".btn-usual-ok,.btn-usual-cancel,.btn-usual-close"
+};
 const nextHandler = (next) => next();
 const backHandler = [
   ["check", ".btn-command-back", (next, command, {selector}) => {
@@ -8,8 +12,7 @@ const backHandler = [
   }, nextHandler]
 ];
 const closeScenario = [
-  "check", 
-  ".btn-usual-ok,.btn-usual-cancel,.btn-usual-close", 
+  "check", selectors.next,
   (next, command, {selector}) => {
     command.merge(
       ["click", selector],
@@ -33,9 +36,6 @@ const resultScenario = [
   }, nextHandler],
   closeScenario
 ];
-const selectors = {
-  "attack": ".btn-attack-start.display-on"
-};
 
 function checkBeforeClick(selector) {
   return ["merge", [
@@ -104,7 +104,11 @@ export default {
     return this.actions["battle.skills"].apply(this, skills);
   },
   "battle.auto": function() {
-    return this.actions.click(".btn-auto");
+    return this.actions.merge(
+      ["click", selectors.attack],
+      ["click", ".btn-auto"],
+      "battle.result"
+    );
   },
   "battle.result": function() {
     return this.actions["merge.array"](resultScenario);
