@@ -1,9 +1,9 @@
 const gulp = require("gulp");
 const gutil = require("gulp-util");
 const babel = require("gulp-babel");
+const rename = require("gulp-rename");
 const nodemon = require("gulp-nodemon");
 const livereload = require("gulp-livereload");
-const sourcemaps = require("gulp-sourcemaps");
 const FileCache = require("gulp-file-cache");
 const resolve = require("path").resolve;
 
@@ -44,11 +44,9 @@ gulp.task("build:extension", function(cb) {
 
 gulp.task("build:server", function() {
   return gulp.src(globs.server)
-    .pipe(sourcemaps.init())
     .pipe(cache.filter())
     .pipe(babel())
     .pipe(cache.cache())
-    .pipe(sourcemaps.write())
     .pipe(gulp.dest("./server/dist"));
 });
 
@@ -80,6 +78,16 @@ gulp.task("serve", ["build:server"], function() {
     }),
     tasks: ["build:server"]
   });
+});
+
+gulp.task("config", function() {
+  return gulp.src("./{server,controller,extension}/*.sample.{json,ini}")
+    .pipe(rename(function(path) {
+      const suffix = ".sample";
+      const index = path.basename.length - suffix.length;
+      path.basename = path.basename.substr(0, index);
+    }))
+    .pipe(gulp.dest("."));
 });
 
 gulp.task("default", ["build"]);

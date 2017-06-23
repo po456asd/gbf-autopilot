@@ -54,6 +54,9 @@ pip install -r requirements.txt
 
 # Build the server and extension
 npm run build
+
+# Create the configuration files
+npm run config
 ```
 
 ### Starting the servers

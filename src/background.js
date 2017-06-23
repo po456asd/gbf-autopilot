@@ -1,7 +1,9 @@
 import liveReload from "./background/liveReload";
 import io from "socket.io-client";
 
-liveReload();
+if (process.env.NODE_ENV !== "production") {
+  liveReload();
+}
 
 const serverUrl = window.serverUrl || "http://localhost:49544/";
 const subscribers = [];
@@ -69,17 +71,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     break;
   case "START":
     if (!currentTab) {
-      throw new Error("No tab loaded!");
+      sendResponse(new Error("No tab loaded!"));
+      return;
     }
     startIo(currentTab);
-    sendResponse("OK");
     break;
   case "STOP":
     if (!socket) {
-      throw new Error("Socket not connected!");
+      sendResponse(new Error("Socket not connected!"));
+      return;
     }
     socket.disconnect();
-    sendResponse("OK");
     break;
   case "LOADED":
     chrome.pageAction.show(sender.tab.id);
