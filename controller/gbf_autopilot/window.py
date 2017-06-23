@@ -25,6 +25,10 @@ class Window:
         (x2, y2, w2, h2) = windowRect
         (x3, y3, w3, h3) = self.getRect()
 
+        # element rect height should be deducted if it overflows from the window
+        if y1 + h1 > h2:
+            h1 -= y1 + h1 - h2
+
         innerX = round(x1 + (w1 / 2)) * scale
         innerY = round(y1 + (h1 / 2)) * scale
 
@@ -37,10 +41,10 @@ class Window:
         devX = round(random.uniform(-devX, devX))
         devY = round(random.uniform(-devY, devY))
 
-        return (
-            outerX + innerX + devX,
-            outerY + innerY + devY
-        )
+        x = outerX + innerX + devX
+        y = outerY + innerY + devY
+
+        return (x, y)
 
     def getDistance(self, source, target):
         (x1, y1) = source
