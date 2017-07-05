@@ -65,7 +65,7 @@ export function translateElement(el) {
   // is a selector
   if (_.isString(el)) {
     el = query(el);
-  } else {
+  } else if (!(el instanceof NodeList)) {
     el = [el];
   }
   var result = translateElements(el);
@@ -74,6 +74,10 @@ export function translateElement(el) {
   }
 
   const rect = result.rects[0];
+  if (!rect) {
+    return null;
+  }
+
   const windowRect = result.window;
   const scale = result.scale;
 
@@ -97,21 +101,29 @@ export function translateElement(el) {
   return result;
 }
 
+function payloadToOptions(payload) {
+  var selector = payload;
+  var retryOnNull = false;
+  if (_.isArray(payload)) {
+    selector = payload.join(",");
+  } else if (_.isObject(payload)) {
+    selector = payload.selector;
+    retryOnNull = payload.retry;
+  }
+  return {selector, retryOnNull};
+}
+
+function elementCallback(selector, done) {
+  return (result) => {
+    result.selector = selector;
+    done(result);
+  };
+}
+
 export default {
   "elements": function(payload, done, fail, retry) {
-    var selector = payload;
-    var retryOnNull = false;
-    if (_.isArray(payload)) {
-      selector = payload.join(",");
-    } else if (_.isObject(payload)) {
-      selector = payload.selector;
-      retryOnNull = payload.retry;
-    }
-
-    const cb = (result) => {
-      result.selector = selector;
-      done(result);
-    };
+    const {selector, retryOnNull} = payloadToOptions(payload);
+    const cb = elementCallback(selector, done);
 
     function findElements() {
       const result = translateElements(query(selector));
@@ -132,10 +144,33 @@ export default {
     findElements();
   },
   "element": function(payload, done, fail, retry) {
-    this.elements(payload, (payload) => {
-      payload = _.assign(payload, payload.rects[0]);
-      delete payload.rects;
-      done(payload);
-    }, fail, retry);
+    const {selector, retryOnNull} = payloadToOptions(payload);
+    const cb = elementCallback(selector, done);
+
+    function findElement() {
+      const result = translateElement(query(selector));
+      if (!result) {
+        if (retryOnNull) {
+          retry(findElement, 150);
+        } else {
+          fail(selector);
+        }
+      } else {
+        cb(result);
+      }
+    }
+    findElement();
+  },
+  "element.text": function(payload, done, fail) {
+    var selector = payload;
+    if (_.isObject(payload)) {
+      selector = payload.selector;
+    }
+    const el = document.querySelector(selector);
+    if (el) {
+      done(el.innerText.trim());
+    } else {
+      fail();
+    }
   }
 };
