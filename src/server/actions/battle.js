@@ -3,7 +3,12 @@ import battleLogic from "./battle/logic";
 
 const selectors = {
   "attack": ".btn-attack-start.display-on",
-  "next": ".btn-usual-ok,.btn-usual-cancel,.btn-usual-close"
+  "next": [
+    ".btn-usual-ok",
+    ".btn-usual-cancel",
+    ".btn-usual-close",
+    ".cjs-lp-rankup"
+  ].join(",")
 };
 const nextHandler = (next) => next();
 const backHandler = [
@@ -16,7 +21,7 @@ const closeScenario = [
   (next, command, {selector}) => {
     command.merge(
       ["click", selector],
-      ["timeout", 3000],
+      ["timeout", 1500],
       closeScenario
     ).then(next);
   },
