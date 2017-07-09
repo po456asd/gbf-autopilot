@@ -7,7 +7,7 @@ const selectors = {
     ".btn-usual-ok",
     ".btn-usual-cancel",
     ".btn-usual-close",
-    ".cjs-lp-rankup"
+    "#cjs-lp-rankup"
   ].join(",")
 };
 const nextHandler = (next) => next();
@@ -30,7 +30,7 @@ const closeScenario = [
 const resultScenario = [
   ["wait", ".btn-usual-ok"],
   closeScenario,
-  ["timeout", 3000],
+  ["timeout", 1500],
   ["click", ".btn-control"],
   ["timeout", 1000],
   ["check", ".pop-friend-request", (next, command) => {
