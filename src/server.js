@@ -9,13 +9,11 @@ import packer from "~/lib/messaging/packer";
 import EventRun from "./server/EventRun";
 
 export default class Server {
-  constructor(config, scenario) {
-    this.config = config;
-    this.scenario = scenario;
-    this.port = process.env.PORT || Number(config.Server.ListenerPort);
-    this.controllerPort = Number(config.Server.ControllerPort);
-    this.timeout = Number(config.Server.ActionTimeoutInMs);
-    this.botTimeout = Number(config.Server.BotTimeoutInMins);
+  constructor(initConfig, configHandler) {
+    this.initConfig = initConfig;
+    this.configHandler = configHandler.bind(this);
+    this.port = process.env.PORT || Number(initConfig.Server.ListenerPort);
+    this.refreshConfig(initConfig);
 
     this.listeners = {
       "action": ::this.onActionSuccess,
@@ -48,25 +46,36 @@ export default class Server {
     return axios.post(`http://localhost:${this.controllerPort}/${path}`);
   }
 
+  refreshConfig(config) {
+    this.controllerPort = Number(config.Server.ControllerPort);
+    this.timeout = Number(config.Server.ActionTimeoutInMs);
+  }
+
   onConnect(socket) {
     console.log(`Client '${socket.id}' connected!`);
-    const runner = new EventRun(this.config, (action, payload, timeout) => {
-      return this.sendAction(socket, action, payload, timeout);
-    });
-    const timer = setTimeout(() => {
-      if (!this.sockets[socket.id]) return;
-      console.log("Bot reaches maximum time. Disconnecting...");
-      this.stopSocket(socket.id);
-    }, this.botTimeout * 60 * 1000);
-    this.sockets[socket.id] = {
-      socket, runner, timer,
-      actions: {}
-    };
-    this.makeRequest("start").then(() => {
-      runner.start(this.scenario);
-    }, (err) => {
-      console.error(err);
-    });
+    this.configHandler().then(({config, scenario}) => {
+      this.refreshConfig(config);
+
+      const botTimeout = Number(config.Server.BotTimeoutInMins);
+      const runner = new EventRun(config, (action, payload, timeout) => {
+        return this.sendAction(socket, action, payload, timeout);
+      });
+      const timer = setTimeout(() => {
+        if (!this.sockets[socket.id]) return;
+        console.log("Bot reaches maximum time. Disconnecting...");
+        this.stopSocket(socket.id);
+      }, botTimeout * 60 * 1000);
+
+      this.sockets[socket.id] = {
+        socket, runner, timer,
+        actions: {}
+      };
+      this.makeRequest("start").then(() => {
+        runner.start(scenario);
+      }, (err) => {
+        console.error(err);
+      });
+    }, ::console.error);
   }
 
   getAction(socket, id) {
