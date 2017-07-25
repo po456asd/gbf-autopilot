@@ -6,6 +6,12 @@ import actionScenario from "./actions/scenario";
 
 const actions = _.assign({
   "check": function(selector) {
+    if (_.isFunction(selector)) {
+      const callback = selector;
+      return new Promise((resolve, reject) => {
+        callback() ? resolve() : reject();
+      });
+    }
     return this.sendAction("element", selector);
   },
   "wait": function(selector, timeout) {
@@ -22,6 +28,12 @@ const actions = _.assign({
       } else {
         resolve(result);
       }
+    });
+  },
+  "finish": function() {
+    return new Promise((resolve) => {
+      this.stop();
+      resolve();
     });
   },
   "timeout": function(timeout) {

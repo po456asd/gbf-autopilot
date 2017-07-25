@@ -53,8 +53,8 @@ class Window:
 
     def getDuration(self, target):
         distance = self.getDistance(pyautogui.position(), target)
-        duration = random.uniform(0.35, 0.55)
-        duration = max(duration, random.uniform(0, distance / 1500))
+        duration = random.uniform(0.15, 0.35)
+        duration = max(duration, random.uniform(0, distance / 4000))
         return duration
 
     def click(self, elementRect=None, windowRect=None, scale=1.0, clicks=1):
@@ -81,7 +81,7 @@ class Window:
         self.delay()
 
     def delay(self):
-        time.sleep(random.uniform(0.08, 0.15))
+        time.sleep(random.uniform(0.005, 0.02))
 
 if __name__ == '__main__':
     window = Window('Granblue Fantasy - Google Chrome')

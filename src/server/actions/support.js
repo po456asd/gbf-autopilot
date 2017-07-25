@@ -42,8 +42,9 @@ export default {
       }, reject);
     });
   },
-  "support.element": function(element, summonIds) {
+  "support.element": function(element, summonIds, party) {
     const elementId = elementIds[element];
+    console.log(element, elementId);
     return this.actions.merge(
       ["wait", ".pop-stamina,.prt-supporter-list", (next, actions) => {
         actions.check(".pop-stamina").then(() => {
@@ -56,6 +57,18 @@ export default {
       }, nextHandler],
       ["click", ".icon-supporter-type-" + elementId],
       ["support", summonIds],
+      ["wait", ".se-quest-start"],
+      ["check", () => !!party, (next, actions) => {
+        const [group, slot] = party.trim().split(".");
+        actions.merge(
+          ["check", ".btn-select-group.id-" + group + ".selected", nextHandler, (next, actions) => {
+            actions.click(".btn-select-group.id-" + group).then(next);
+          }],
+          ["check", ".prt-deck-slider ol > li:nth-child(" + slot + ") > a.flex-active", nextHandler, (next, actions) => {
+            actions.click(".prt-deck-slider ol > li:nth-child(" + slot + ")").then(next);
+          }]
+        ).then(next);
+      }, nextHandler],
       ["click", ".se-quest-start"],
       ["merge", waitBattleScreen]
     );

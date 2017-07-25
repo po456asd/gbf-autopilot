@@ -10,7 +10,13 @@ const readConfig = () => {
 };
 
 const readScenario = (scenarioName) => {
-  const scenario = require("./scenarios/" + scenarioName);
+  const modulePath = "./scenarios/" + scenarioName;
+  const resolved = require.resolve(modulePath);
+  // make sure to invalidate cached scenario
+  if (require.cache[resolved]) {
+    delete require.cache[resolved];
+  }
+  const scenario = require(modulePath);
   return scenario;
 };
 

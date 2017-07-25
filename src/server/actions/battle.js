@@ -138,7 +138,10 @@ export default {
   },
   "battle.summon": function(number) {
     if (this.config.Viramate.QuickSummon) {
-      return this.actions.click(".quick-summon.available");
+      const index = number ? number - 1 : 0;
+      return this.actions.click(number ?
+        `.quick-summon[index="${index}"]` :
+        ".quick-summon.available");
     }
     const selector = number ?
       `.lis-summon[pos="${number}"]` :
