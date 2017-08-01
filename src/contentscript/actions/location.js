@@ -8,6 +8,6 @@ export default {
     window.location.hash = hash;
     window.setTimeout(() => {
       done("OK");
-    }, 5000);
+    }, 1000);
   }
 };

@@ -27,6 +27,8 @@ export const waitBattleScreen = [
   }, nextHandler]
 ];
 
+export const supportScreenSelector = ".pop-stamina,.prt-supporter-list";
+
 export default {
   "support": function(ids) {
     // check if the ids is a list of array
@@ -44,9 +46,8 @@ export default {
   },
   "support.element": function(element, summonIds, party) {
     const elementId = elementIds[element];
-    console.log(element, elementId);
     return this.actions.merge(
-      ["wait", ".pop-stamina,.prt-supporter-list", (next, actions) => {
+      ["wait", supportScreenSelector, (next, actions) => {
         actions.check(".pop-stamina").then(() => {
           actions.merge(
             ["timeout", 1000],
@@ -62,15 +63,58 @@ export default {
         const [group, slot] = party.trim().split(".");
         actions.merge(
           ["check", ".btn-select-group.id-" + group + ".selected", nextHandler, (next, actions) => {
-            actions.click(".btn-select-group.id-" + group).then(next);
+            actions.merge(
+              ["click", ".btn-select-group.id-" + group],
+              ["timeout", 1000]
+            ).then(next);
           }],
           ["check", ".prt-deck-slider ol > li:nth-child(" + slot + ") > a.flex-active", nextHandler, (next, actions) => {
-            actions.click(".prt-deck-slider ol > li:nth-child(" + slot + ")").then(next);
+            actions.merge(
+              ["click", ".prt-deck-slider ol > li:nth-child(" + slot + ")"],
+              ["timeout", 1000]
+            ).then(next);
           }]
         ).then(next);
       }, nextHandler],
       ["click", ".se-quest-start"],
       ["merge", waitBattleScreen]
     );
+  },
+  "support.quest": function() {
+    if (arguments.length < 1) {
+      var selector = arguments[0];
+    } else {
+      selector = Array.from(arguments);
+    }
+    if (_.isString(selector)) {
+      selector = [selector];
+    }
+
+    var index = 0;
+    const checker = ["check", supportScreenSelector, nextHandler, function(next, actions) {
+      // check current and next selectors
+      // if next selector exists, iterate the checker to the next selector
+      // else, click the current selector and check again
+      const selectorCurrent = selector[index];
+      const selectorNext = index + 1 < selector.length ? selector[index + 1] : supportScreenSelector;
+      actions.check(selectorNext).then(() => {
+        actions.merge(
+          ["timeout", 1000],
+          checker
+        ).then(() => {
+          index++;
+          next();
+        }); 
+      }, () => {
+        actions.check(selectorCurrent).then(() => {
+          actions.merge(
+            ["click", selectorCurrent],
+            ["timeout", 1000],
+            checker
+          ).then(next);
+        }, next);
+      });
+    }];
+    return this.actions.merge(checker);
   }
 };

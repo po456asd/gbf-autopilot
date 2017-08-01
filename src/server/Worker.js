@@ -1,10 +1,19 @@
+import axios from "axios";
 import _ from "lodash";
 import actionClick from "./actions/click";
 import actionSupport from "./actions/support";
 import actionBattle from "./actions/battle";
 import actionScenario from "./actions/scenario";
+import actionRaid from "./actions/raid";
 
+/* 
+ * Every single action must return a Promise.
+ * These promises will be handled by the scenario runner. 
+ */
 const actions = _.assign({
+  "execute": function(action, payload) {
+    return this.sendAction(action, payload);
+  },
   "check": function(selector) {
     if (_.isFunction(selector)) {
       const callback = selector;
@@ -40,13 +49,24 @@ const actions = _.assign({
     return new Promise((resolve) => {
       setTimeout(resolve, timeout || 1);
     });
+  },
+  "chatbot": function(text) {
+    const port = this.config.Server.ChatBotPort;
+    return axios.post(`http://localhost:${port}/backup`, {
+      type: "text",
+      text
+    });
   }
-}, actionScenario, actionClick, actionSupport, actionBattle);
+}, 
+actionScenario, actionClick,
+actionSupport, actionBattle, actionRaid);
 
-export default class EventRun {
-  constructor(config, sendAction) {
+export default class Worker {
+  constructor(server, config, sendAction, manager) {
+    this.server = server;
     this.config = config;
     this.sendAction = sendAction;
+    this.manager = manager;
     this.port = Number(this.config.Server.ControllerPort);
     this.actions = _.reduce(actions, (result, action, name) => {
       result[name] = action.bind(this);
@@ -123,13 +143,16 @@ export default class EventRun {
   }
 
   start(initialScenario) {
+    if (this.running) return;
     this.running = true;
     this.runScenario(initialScenario);
     return this;
   }
 
   stop() {
+    if (!this.running) return;
     this.running = false;
+    this.manager.stop();
     return this;
   }
 }

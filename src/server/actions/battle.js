@@ -1,5 +1,6 @@
 import _ from "lodash";
 import battleLogic from "./battle/logic";
+import battleBackup from "./battle/backup";
 
 const selectors = {
   "attack": ".btn-attack-start.display-on",
@@ -156,5 +157,11 @@ export default {
       }, nextHandler]
     );
   },
-  "battle.logic": battleLogic
+  "battle.enemy": function(number) {
+    return this.actions.click(".btn-targeting.enemy-" + number);
+  },
+
+  // Extras
+  "battle.logic": battleLogic,
+  "battle.backup": battleBackup
 };

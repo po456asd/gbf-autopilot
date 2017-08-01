@@ -1,10 +1,12 @@
-import liveReload from "./background/liveReload";
+import ViramateApi from "./background/ViramateApi";
+import LiveReload from "./background/LiveReload";
 import io from "socket.io-client";
 
 if (process.env.NODE_ENV !== "production") {
-  liveReload();
+  LiveReload();
 }
 
+const viramateApi = new ViramateApi(document.querySelector("#viramate_api"));
 const serverUrl = window.serverUrl || "http://localhost:49544/";
 const subscribers = [];
 const broadcast = (payload) => {
@@ -32,12 +34,19 @@ function startIo(tab) {
     console.log("Stopped socket");
   });
   socket.on("action", ({action, id, payload, timeout}) => {
+    if (action == "viramate") {
+      viramateApi.sendApiRequest(payload, id).then((result) => {
+        socket.emit("action", {id, action, payload: result});
+      }, (result) => {
+        socket.emit("action.fail", {id, action, payload: result});
+      });
+      return;
+    }
+
     var rejected = false;
     function sendMessage() {
       if (rejected) return;
-      console.log("SEND", id, {action, payload});
       chrome.tabs.sendMessage(tab.id, {action, payload, timeout}, (data) => {
-        console.log("RECV", id, data);
         if (data == undefined && socket) {
           setTimeout(sendMessage, 500);
           return;

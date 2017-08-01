@@ -3,10 +3,13 @@ import axios from "axios";
 import shortid from "shortid";
 import SocketIO from "socket.io";
 import Express from "express";
+import bodyParser from "body-parser";
 import forEach from "lodash/forEach";
 
 import packer from "~/lib/messaging/packer";
-import EventRun from "./server/EventRun";
+import Worker from "./server/Worker";
+import WorkerManager from "./server/WorkerManager";
+import RaidQueue from "./server/RaidQueue";
 
 export default class Server {
   constructor(initConfig, configHandler) {
@@ -22,6 +25,7 @@ export default class Server {
     };
     this.sockets = {};
 
+    this.raidQueue = new RaidQueue();
     this.app = Express();
     this.server = http.Server(this.app);
     this.io = SocketIO(this.server);
@@ -30,7 +34,16 @@ export default class Server {
   }
 
   setupExpress(app) {
-    app.post("/stop", ::this.stop);
+    app.use(bodyParser.text());
+    app.post("/stop", (req, res) => {
+      this.stop();
+      res.end();
+    });
+    app.post("/raid", (req, res) => {
+      console.log("New raid: " + req.body);
+      this.raidQueue.push(req.body);
+      res.end();
+    });
   }
 
   setupSocket(io) {
@@ -57,9 +70,10 @@ export default class Server {
       this.refreshConfig(config);
 
       const botTimeout = Number(config.Server.BotTimeoutInMins);
-      const runner = new EventRun(config, (action, payload, timeout) => {
+      const manager = new WorkerManager(this, socket);
+      const worker = new Worker(this, config, (action, payload, timeout) => {
         return this.sendAction(socket, action, payload, timeout);
-      });
+      }, manager);
       const timer = setTimeout(() => {
         if (!this.sockets[socket.id]) return;
         console.log("Bot reaches maximum time. Disconnecting...");
@@ -67,11 +81,11 @@ export default class Server {
       }, botTimeout * 60 * 1000);
 
       this.sockets[socket.id] = {
-        socket, runner, timer,
+        socket, worker, timer,
         actions: {}
       };
       this.makeRequest("start").then(() => {
-        runner.start(scenario);
+        worker.start(scenario);
       }, (err) => {
         console.error(err);
       });
@@ -136,12 +150,12 @@ export default class Server {
           reject(payload);
           done();
         },
-        timer: setTimeout(() => {
+        timer: timeout > 0 ? setTimeout(() => {
           if (!resolved) {
             reject(new Error(`Action ${expression} timed out!`));
           }
           done();
-        }, timeout)
+        }, timeout) : 0
       };
 
       const data = packer(actionName, payload);
@@ -155,17 +169,15 @@ export default class Server {
   }
 
   stopSocket(id) {
-    if (!this.sockets[id]) {
-      throw new Error("Socket ID not found!");
-    }
-    const {socket, runner, timer, actions} = this.sockets[id];
+    if (!this.sockets[id]) return;
+    const {socket, worker, timer, actions} = this.sockets[id];
     delete this.sockets[id];
     forEach(actions, ({timer}) => {
       clearTimeout(timer);
     });
     clearTimeout(timer);
     socket.disconnect();
-    runner.stop();
+    worker.stop();
     return this;
   }
 
