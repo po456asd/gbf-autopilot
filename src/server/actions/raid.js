@@ -1,11 +1,9 @@
 export default {
   "raid.backup": function() {
+    const raidQueue = this.server.extensions.raidQueue;
     return new Promise((resolve, reject) => {
-      this.server.raidQueue.pop().then((raidCode) => {
-        this.sendAction("viramate", {
-          type: "tryJoinRaid", 
-          raidCode
-        }, 0).then(resolve, reject);
+      raidQueue.pop().then((raidCode) => {
+        this.actions["viramate.backup"](raidCode).then(resolve, reject);
       });
     });
   }

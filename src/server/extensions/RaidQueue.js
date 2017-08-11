@@ -1,7 +1,18 @@
-export default class RaidQueue {
+import BaseExtension from "./BaseExtension";
+
+export default class RaidQueue extends BaseExtension {
   constructor() {
+    super();
     this.queue = [];
     this.callbacks = [];
+  }
+
+  onSetup(server) {
+    server.app.post("/raid", (req, res) => {
+      console.log("New raid: " + req.body);
+      this.push(req.body);
+      res.end();
+    });
   }
 
   push(code) {

@@ -1,10 +1,11 @@
-import axios from "axios";
 import _ from "lodash";
 import actionClick from "./actions/click";
 import actionSupport from "./actions/support";
 import actionBattle from "./actions/battle";
 import actionScenario from "./actions/scenario";
 import actionRaid from "./actions/raid";
+import actionChatbot from "./actions/chatbot";
+import actionViramate from "./actions/viramate";
 
 /* 
  * Every single action must return a Promise.
@@ -50,16 +51,10 @@ const actions = _.assign({
       setTimeout(resolve, timeout || 1);
     });
   },
-  "chatbot": function(text) {
-    const port = this.config.Server.ChatBotPort;
-    return axios.post(`http://localhost:${port}/backup`, {
-      type: "text",
-      text
-    });
-  }
 }, 
 actionScenario, actionClick,
-actionSupport, actionBattle, actionRaid);
+actionSupport, actionBattle, actionRaid,
+actionChatbot, actionViramate);
 
 export default class Worker {
   constructor(server, config, sendAction, manager) {

@@ -5,19 +5,26 @@ import SocketIO from "socket.io";
 import Express from "express";
 import bodyParser from "body-parser";
 import forEach from "lodash/forEach";
+import assign from "lodash/assign";
 
 import packer from "~/lib/messaging/packer";
 import Worker from "./server/Worker";
 import WorkerManager from "./server/WorkerManager";
-import RaidQueue from "./server/RaidQueue";
+
+import RaidQueue from "./server/extensions/RaidQueue";
+import Chatbot from "./server/extensions/Chatbot";
 
 export default class Server {
-  constructor(initConfig, configHandler) {
+  constructor(initConfig, configHandler, extensions) {
     this.initConfig = initConfig;
     this.configHandler = configHandler.bind(this);
     this.port = process.env.PORT || Number(initConfig.Server.ListenerPort);
     this.refreshConfig(initConfig);
 
+    this.extensions = assign(extensions || {}, {
+      raidQueue: new RaidQueue(),
+      chatbot: new Chatbot()
+    });
     this.listeners = {
       "action": ::this.onActionSuccess,
       "action.fail": ::this.onActionFail,
@@ -25,23 +32,24 @@ export default class Server {
     };
     this.sockets = {};
 
-    this.raidQueue = new RaidQueue();
     this.app = Express();
     this.server = http.Server(this.app);
     this.io = SocketIO(this.server);
+    this.doSetup();
+  }
+
+  doSetup() {
     this.setupExpress(this.app);
     this.setupSocket(this.io);
+    forEach(this.extensions, (extension) => {
+      extension.onSetup(this);
+    });
   }
 
   setupExpress(app) {
     app.use(bodyParser.text());
     app.post("/stop", (req, res) => {
       this.stop();
-      res.end();
-    });
-    app.post("/raid", (req, res) => {
-      console.log("New raid: " + req.body);
-      this.raidQueue.push(req.body);
       res.end();
     });
   }
