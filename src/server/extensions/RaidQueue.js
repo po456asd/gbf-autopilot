@@ -8,10 +8,13 @@ export default class RaidQueue extends BaseExtension {
   }
 
   onSetup(server) {
+    server.app.get("/raid/reset", (req, res) => {
+      this.queue = [];
+      res.end("OK");
+    });
     server.app.post("/raid", (req, res) => {
-      console.log("New raid: " + req.body);
       this.push(req.body);
-      res.end();
+      res.end("OK");
     });
   }
 

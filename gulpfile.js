@@ -3,6 +3,7 @@ const gutil = require("gulp-util");
 const babel = require("gulp-babel");
 const rename = require("gulp-rename");
 const nodemon = require("gulp-nodemon");
+const shell = require("gulp-shell");
 const livereload = require("gulp-livereload");
 const FileCache = require("gulp-file-cache");
 const resolve = require("path").resolve;
@@ -79,6 +80,10 @@ gulp.task("serve", ["build:server"], function() {
     tasks: ["build:server"]
   });
 });
+
+gulp.task("serve2", shell.task([
+  "concurrently \"gulp serve\" \"python controller/controller.py\""
+]));
 
 gulp.task("config", function() {
   return gulp.src("./{server,controller,extension}/*.sample.{json,ini}")

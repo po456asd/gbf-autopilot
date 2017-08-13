@@ -1,9 +1,7 @@
-import axios from "axios";
-
 export default {
   "chatbot": function(text) {
-    const port = this.config.Chatbot.ListenerPort;
-    return axios.post(`http://localhost:${port}/broadcast`, {
+    const chatbot = this.server.extensions.chatbot;
+    return chatbot.pushToUsers({
       type: "text",
       text
     });

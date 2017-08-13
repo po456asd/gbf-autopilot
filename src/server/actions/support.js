@@ -45,6 +45,7 @@ export default {
     });
   },
   "support.element": function(element, summonIds, party) {
+    element = element.toLowerCase().trim();
     const elementId = elementIds[element];
     return this.actions.merge(
       ["wait", supportScreenSelector, (next, actions) => {

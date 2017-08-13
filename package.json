@@ -24,6 +24,7 @@
     "gulp-livereload": "^3.8.1",
     "gulp-nodemon": "^2.2.1",
     "gulp-rename": "^1.2.2",
+    "gulp-shell": "^0.6.3",
     "gutil": "^1.6.4",
     "webpack": "^2.6.1",
     "webpack-merge": "^4.1.0"

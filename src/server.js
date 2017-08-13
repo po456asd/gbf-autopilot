@@ -15,9 +15,17 @@ import RaidQueue from "./server/extensions/RaidQueue";
 import Chatbot from "./server/extensions/Chatbot";
 
 export default class Server {
-  constructor(initConfig, configHandler, extensions) {
-    this.initConfig = initConfig;
-    this.configHandler = configHandler.bind(this);
+  constructor(initConfig, rootDir, configHandler, extensions) {
+    this.config = initConfig;
+    this.rootDir = rootDir;
+    this.configHandler = () => {
+      return new Promise((resolve, reject) => {
+        configHandler.apply(this).then((result) => {
+          this.refreshConfig(result.config);
+          resolve(result);
+        }, reject);
+      });
+    };
     this.port = process.env.PORT || Number(initConfig.Server.ListenerPort);
     this.refreshConfig(initConfig);
 
@@ -32,6 +40,7 @@ export default class Server {
     };
     this.sockets = {};
 
+    this.running = false;
     this.app = Express();
     this.server = http.Server(this.app);
     this.io = SocketIO(this.server);
@@ -68,11 +77,19 @@ export default class Server {
   }
 
   refreshConfig(config) {
+    this.config = config;
     this.controllerPort = Number(config.Server.ControllerPort);
     this.timeout = Number(config.Server.ActionTimeoutInMs);
   }
 
   onConnect(socket) {
+    if (!this.running) this.running = true;
+
+    const errorHandler = (err) => {
+      console.error(err);
+      socket.disconnect();
+    };
+
     console.log(`Client '${socket.id}' connected!`);
     this.configHandler().then(({config, scenario}) => {
       this.refreshConfig(config);
@@ -94,10 +111,8 @@ export default class Server {
       };
       this.makeRequest("start").then(() => {
         worker.start(scenario);
-      }, (err) => {
-        console.error(err);
-      });
-    }, ::console.error);
+      }, errorHandler);
+    }, errorHandler);
   }
 
   getAction(socket, id) {
@@ -125,6 +140,8 @@ export default class Server {
   }
 
   onDisconnect(socket) {
+    if (this.running) this.running = false;
+
     console.log(`Client '${socket.id}' disconnected!`);
     this.makeRequest("stop").then(() => {
       if (this.sockets[socket.id]) {
@@ -135,14 +152,20 @@ export default class Server {
     });
   }
 
-  sendAction(socket, actionName, payload, timeout) {
+  sendAction(realSocket, actionName, payload, timeout) {
     timeout = timeout || this.timeout;
     return new Promise((resolve, reject) => {
       var resolved = false;
       const id = shortid.generate();
       const json = JSON.stringify(payload);
       const expression = `${actionName}(${json})`;
-      const actions = this.sockets[socket.id].actions;
+      const socket = this.sockets[realSocket.id];
+      if (!socket) {
+        reject(new Error("Socket not found!"));
+        return;
+      }
+
+      const actions = socket.actions;
       const done = () => {
         resolved = true;
         clearTimeout(actions[id].timer);
@@ -172,7 +195,7 @@ export default class Server {
       data.type = "response";
 
       console.log(`Socket: ${expression}`);
-      socket.emit("action", data);
+      realSocket.emit("action", data);
     });
   }
 
@@ -198,6 +221,7 @@ export default class Server {
 
   stop() {
     console.log("Stopping...");
+    if (this.running) this.running = false;
     forEach(this.sockets, (socket) => {
       socket.socket.disconnect();
     });

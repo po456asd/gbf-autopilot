@@ -20,11 +20,11 @@ const readScenario = (scenarioName) => {
   return scenario;
 };
 
-new Server(readConfig(), (scenarioName) => {
+new Server(readConfig(), __dirname, () => {
   return new Promise((resolve, reject) => {
     try {
       const config = readConfig();
-      const scenario = readScenario(scenarioName || config.Server.Scenario);
+      const scenario = readScenario(config.Server.Scenario);
       resolve({config, scenario});
     } catch (err) {
       reject(err);

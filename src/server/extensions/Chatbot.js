@@ -2,22 +2,24 @@ import axios from "axios";
 import io from "socket.io-client";
 import BaseExtension from "./BaseExtension";
 import forEach from "lodash/forEach";
+import commands from "./Chatbot/commands";
 
 export default class Chatbot extends BaseExtension {
   constructor() {
     super();
     this.prefix = "/";
-    this.commands = {
-      "th": ::this.treasureHunt
-    };
+    this.commands = {};
+    this.subscribers = new Set();
+    forEach(commands, (command, name) => {
+      this.commands[name] = command.bind(this);
+    });
   }
 
   onSetup(server) {
     this.server = server;
-    const config = server.initConfig;
-
-    this.url = config.Chatbot.URL;
-    this.token = config.Chatbot.Token;
+    this.config = server.config;
+    this.url = this.config.Chatbot.URL;
+    this.token = this.config.Chatbot.Token;
     this.http = axios.create({
       baseURL: this.url + "/api/",
       headers: {
@@ -31,6 +33,8 @@ export default class Chatbot extends BaseExtension {
     });
     this.socket.on("connect", ::this.onChatConnect);
     this.socket.on("events", ::this.onChatEvents);
+
+    this.users = this.config.Chatbot.UserId.split(/[,\s]/);
   }
 
   onChatConnect() {}
@@ -50,20 +54,33 @@ export default class Chatbot extends BaseExtension {
       const command = this.commands[trigger.substr(prefixLength)];
       if (!command) return;
       const arg = text.substr(triggerLength).trim();
-      command(arg, (message) => {
-        return this.http.post("/reply", {
-          token: event.replyToken,
-          message
-        });
-      });
+      command(this.createReplyCallback(event.replyToken), arg, event);
     }
   }
 
-  treasureHunt(code, reply) {
-    this.server.extensions.raidQueue.push(code);
-    reply({
-      type: "text",
-      text: "Raid added to queue"
-    });
+  createReplyCallback(replyToken) {
+    return {
+      text: (text) => {
+        return this.reply(replyToken, {type: "text", text});
+      }
+    };
+  }
+
+  broadcast(message) {
+    return this.http.post("/broadcast", {message});
+  }
+
+  reply(token, message) {
+    return this.http.post("/reply", {token, message});
+  }
+
+  pushToUsers(message) {
+    const users = this.users.slice();
+    const pushMessage = () => {
+      const user = users.pop();
+      if (!user) return;
+      this.http.post("/push", {to: user, message}).then(pushMessage, ::console.error);
+    };
+    pushMessage();
   }
 }
