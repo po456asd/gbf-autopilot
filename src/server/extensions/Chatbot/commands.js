@@ -1,9 +1,10 @@
 export default {
   "th": function(reply, code) {
+    const config = this.getConfig();
     if (!this.server.running) {
       return reply.text("Autopilot is not running");
     }
-    if (this.config.Server.Scenario !== "Leech") {
+    if (config.Scenario.Name !== "Leech") {
       return reply.text("Autopilot is not running in Leech mode");
     }
     this.server.extensions.raidQueue.push(code);

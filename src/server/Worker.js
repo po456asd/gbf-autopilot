@@ -94,20 +94,20 @@ export default class Worker {
     }
   }
 
-  runScenario(initialScenario, nextRun) {
+  runScenario(nextRun) {
     if (!this.running) return;
 
     const next = () => {
-      setTimeout(() => this.runScenario(initialScenario, true), 1);
+      setTimeout(() => this.runScenario(true), 1);
     };
 
     if (!nextRun) {
-      this.scenario(initialScenario);
+      this.scenario(this.initialScenario);
     }
 
     var current = this.scenario().shift();
     if (!current) {
-      this.scenario(initialScenario);
+      this.scenario(this.initialScenario);
       return next();
     }
 
@@ -140,7 +140,8 @@ export default class Worker {
   start(initialScenario) {
     if (this.running) return;
     this.running = true;
-    this.runScenario(initialScenario);
+    this.initialScenario = initialScenario;
+    this.runScenario();
     return this;
   }
 

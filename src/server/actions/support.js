@@ -15,15 +15,35 @@ export const elementIds = {
   "fav": 8
 };
 
+const battleSelector = [
+  ".btn-attack-start.display-on",
+  ".txt-popup-body",
+  ".btn-usual-ok",
+  ".btn-result"
+];
+
 export const waitBattleScreen = [
   ["timeout", 3000],
-  ["wait", ".btn-attack-start.display-on,.btn-usual-ok", (next, actions) => {
-    actions.check(".btn-usual-ok").then(() => {
+  ["wait", battleSelector.join(","), (next, actions) => {
+    const checkButton = ["check", ".btn-usual-ok", (next, actions) => {
       actions.merge(
         ["click", ".btn-usual-ok"],
         ["merge", waitBattleScreen]
       ).then(next);
-    }, next);
+    }, nextHandler];
+
+    const checkPopup = ["check", ".txt-popup-body", (next, actions) => {
+      actions["element.text"](".txt-popup-body").then((text) => {
+        text = text.trim().toLowerCase();
+        if (text.indexOf("end") >= 0) {
+          actions.reset().then(next);
+        } else {
+          actions.merge(checkButton).then(next);
+        }
+      });
+    }, nextHandler];
+
+    actions.merge(checkPopup).then(next);
   }, nextHandler]
 ];
 
@@ -50,6 +70,10 @@ export default {
     return this.actions.merge(
       ["wait", supportScreenSelector, (next, actions) => {
         actions.check(".pop-stamina").then(() => {
+          if (!this.config.Scenario.RefillAP) {
+            actions.finish().then(next);
+            return;
+          }
           actions.merge(
             ["timeout", 1000],
             ["click", ".btn-use-full.index-1"],

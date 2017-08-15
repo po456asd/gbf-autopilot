@@ -15,11 +15,16 @@ export default class Chatbot extends BaseExtension {
     });
   }
 
+  getConfig() {
+    return this.server.config;
+  }
+
   onSetup(server) {
     this.server = server;
-    this.config = server.config;
-    this.url = this.config.Chatbot.URL;
-    this.token = this.config.Chatbot.Token;
+
+    const config = this.getConfig();
+    this.url = config.Chatbot.URL;
+    this.token = config.Chatbot.Token;
     this.http = axios.create({
       baseURL: this.url + "/api/",
       headers: {
@@ -34,7 +39,7 @@ export default class Chatbot extends BaseExtension {
     this.socket.on("connect", ::this.onChatConnect);
     this.socket.on("events", ::this.onChatEvents);
 
-    this.users = this.config.Chatbot.UserId.split(/[,\s]/);
+    this.users = config.Chatbot.UserId.split(/[,\s]/);
   }
 
   onChatConnect() {}

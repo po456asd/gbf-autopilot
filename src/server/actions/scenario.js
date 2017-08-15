@@ -30,4 +30,7 @@ export default {
   "merge.array": function(arr) {
     return this.actions.merge.apply(this, arr);
   },
+  "reset": function() {
+    return this.actions["switch.array"](this.initialScenario);
+  }
 };

@@ -24,7 +24,7 @@ new Server(readConfig(), __dirname, () => {
   return new Promise((resolve, reject) => {
     try {
       const config = readConfig();
-      const scenario = readScenario(config.Server.Scenario);
+      const scenario = readScenario(config.Scenario.Name);
       resolve({config, scenario});
     } catch (err) {
       reject(err);
