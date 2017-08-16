@@ -166,7 +166,7 @@ Currently the bot has 3 built-in modules:
 * Raid queue
 * Viramate
 
-These modules are hardcoded and eagerly loaded. However, it would be possible to lazily load these modules alongside with other external modules from others, further improving the capability of the bot itself.
+These modules are hardcoded and eagerly loaded. However, it would be possible to lazily load these modules alongside with other external modules, further improving the capability of the bot itself.
 
 ## License
 This software is licensed under the [MIT License](LICENSE)
