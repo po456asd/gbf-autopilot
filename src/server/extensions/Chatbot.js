@@ -7,6 +7,7 @@ import commands from "./Chatbot/commands";
 export default class Chatbot extends BaseExtension {
   constructor() {
     super();
+    this.enabled = false;
     this.prefix = "/";
     this.commands = {};
     this.subscribers = new Set();
@@ -21,8 +22,10 @@ export default class Chatbot extends BaseExtension {
 
   onSetup(server) {
     this.server = server;
-
     const config = this.getConfig();
+    if (!config.Chatbot.Enabled) return;
+
+    this.enabled = true;
     this.url = config.Chatbot.URL;
     this.token = config.Chatbot.Token;
     this.http = axios.create({

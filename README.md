@@ -43,6 +43,7 @@ The **control server** is tightly coupled with your operating system. Currently 
 ### Prerequisites
 * [Node.js 6.0+](https://nodejs.org/)
 * [Python 3.5](https://www.python.org/)
+* [pywin32](https://sourceforge.net/projects/pywin32/)
 
 ### Building
 ```sh
@@ -76,19 +77,28 @@ npm start
 The configurations are stored inside the `config.ini` file of each application.
 
 ### Command server
-| Options       | Default | Description |
-|---------------|---------|-------------|
-| ListenerPort | 49544   | The port of the command server. |
-| ControllerPort | 49545 | The port of the control server. |
-| ActionTimeoutInMs | 60000 | Maximum amount of time in milliseconds before an action (eg. clicks) timed out and generates an error. |
-| Scenario | PinaHazard | The name of the scenario that the bot will use. |
+| Options       | Default | Required | Description |
+|---------------|---------|----------|-------------|
+| Server.ListenerPort | 49544 | Yes | The port of the command server. |
+| Server.ControllerPort | 49545 | Yes | The port of the control server. |
+| Server.ActionTimeoutInMs | 60000 | Yes | Maximum amount of time in milliseconds before an action (eg. clicks) timed out and generates an error. |
+| Server.BotTimeoutInMins | 60 | Yes | How long the bot runs before it shuts down itself. |
+| Scenario.Name | None | Yes | The name of the scenario that the bot will use. |
+| Scenario.RefillAP | false | Yes | Automatically refill AP using 1/2 elixirs. |
+| Chatbot.Enabled | false | Yes | Option to enable [Chatbot](https://github.com/Frizz925/gbf-autopilot-chatbot). |
+| Chatbot.URL | None | No | URL of the Chatbot webhook. |
+| Chatbot.Token | None | No | JWT token generated from the chatbot endpoint. |
+| Chatbot.UserId | None | No | (LINE chatbot only) List of comma-separated LINE User IDs for private message push. |
+| Raid.BackupTimeoutInMs | 60000 | Yes | Time needed in milliseconds before processing another raid from the queue after the bot reaches the maximum number of backup provided. |
+| Viramate.QuickSkill | true | Yes | Use quick skill buttons from Viramate. |
+| Viramate.QuickSummon | true | Yes | Use quick summon buttons from Viramate. |
 
 ### Control server
-| Options       | Default | Description |
-|---------------|---------|-------------|
-| ListenerPort | 49544   | The port of the control server. |
-| WindowTitle  | Granblue Fantasy - Google Chrome | The title of the browser window to lookup. |
-| InputTween | easeInOutCubic | Tween function to move the cursor used by [PyAutoGUI](https://github.com/asweigart/pyautogui). List of tween functions is listed [here](https://github.com/asweigart/pyautogui/blob/master/pyautogui/tweens.py). |
+| Options       | Default | Required | Description |
+|---------------|---------|----------|-------------|
+| Controller.ListenerPort | 49544   | Yes | The port of the control server. |
+| Controller.WindowTitle  | Granblue Fantasy - Google Chrome | Yes | The title of the browser window to lookup. |
+| Controller.InputTween | easeInOutCubic | Yes | Tween function to move the cursor used by [PyAutoGUI](https://github.com/asweigart/pyautogui). List of tween functions is listed [here](https://github.com/asweigart/pyautogui/blob/master/pyautogui/tweens.py). |
 
 ## Scenarios
 The bot uses scenario to determine what action it should take based on the logic and state of the game. The scenario itself is written in JavaScript and stored in the `server/scenarios` directory. Example of a scenario can be found [here](server/scenarios/pina_hazard.js).
@@ -143,9 +153,8 @@ Some actions' arguments can be written in different ways such as for `battle.ski
 ### Using the scenario
 The filename of the scenario is used to identify the scenario that the bot will use. For example, to load the scenario saved as `server/scenarios/PinaHazard.js`, you should have the following options inside of the **command server** config file:
 ```ini
-[Server]
-# ...
-Scenario = PinaHazard
+[Scenario]
+Name = PinaHazard
 # ...
 ```
 Notice that the value of the option as `PinaHazard` does not include the extension (`.js`) and the directory path (`server/scenarios`).

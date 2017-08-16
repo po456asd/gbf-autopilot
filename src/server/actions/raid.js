@@ -29,7 +29,7 @@ export default {
         console.log("Joining raid failed: " + result);
         result = result.toLowerCase();
         if (result.indexOf("provide backup") >= 0) {
-          return this.actions.timeout(Number(this.config.Raid.BackupTimeout || 30000));
+          return this.actions.timeout(Number(this.config.Raid.BackupTimeoutInMs || 30000));
         } else if (result.indexOf("pending") >= 0) {
           return this.actions.merge(goToPending, pending);
         } else {
