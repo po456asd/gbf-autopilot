@@ -16,6 +16,7 @@ Granblue Autopilot is an open-source grinding/farming bot for Granblue Fantasy l
   * [Writing a scenario](#writing-a-scenario)
   * [Using the scenario](#using-the-scenario)
   * [Actions](#actions)
+* [Modules](#modules)
 * [License](#license)
 
 ## Disclaimer
@@ -101,7 +102,7 @@ The configurations are stored inside the `config.ini` file of each application.
 | Controller.InputTween | easeInOutCubic | Yes | Tween function to move the cursor used by [PyAutoGUI](https://github.com/asweigart/pyautogui). List of tween functions is listed [here](https://github.com/asweigart/pyautogui/blob/master/pyautogui/tweens.py). |
 
 ## Scenarios
-The bot uses scenario to determine what action it should take based on the logic and state of the game. The scenario itself is written in JavaScript and stored in the `server/scenarios` directory. Example of a scenario can be found [here](server/scenarios/pina_hazard.js).
+The bot uses scenario to determine what action it should take based on the logic and state of the game. The scenario itself is written in JavaScript and stored in the `server/scenarios` directory. [This repository](https://github.com/Frizz925/gbf-autopilot-scenarios) has a number of scenario examples, ranging from the basic to the advanced one.
 
 ### Writing a scenario
 All scenarios must be stored inside the `server/scenarios` directory. The scenario will be treated as a module by the **control server** using `require()`. The scenario itself must exports an array of actions.
@@ -131,7 +132,7 @@ Consider the following scenario inside a battle:
 ```
 1. From 3rd character, use the 4th skill
 2. From 1st character (MC), use the 2nd skill
-3. Use any available summon
+3. Use 6th summon
 4. Turn on the Charge Attack
 5. Attack
 ```
@@ -140,17 +141,12 @@ The scenario above can be written as the following:
 
 ```js
 module.exports = [
-    ["battle.skill", "3-4"],
-    ["battle.skill", [1, 2]],
-    "battle.summon",
+    ["battle.skills", ["3.4", "1.2"]],
+    ["battle.summon", 6],
     ["battle.ca", true],
     "battle.attack"
 ];
 ```
-
-Some actions' arguments can be written in different ways such as for `battle.skill`. Notice how the the arguments for the `battle.skill` can be written either as a single string or an array of numbers.
-
-### Using the scenario
 The filename of the scenario is used to identify the scenario that the bot will use. For example, to load the scenario saved as `server/scenarios/PinaHazard.js`, you should have the following options inside of the **command server** config file:
 ```ini
 [Scenario]
@@ -163,6 +159,14 @@ Notice that the value of the option as `PinaHazard` does not include the extensi
 The bot currently has limited number of actions (it mostly revolves around mouse clicks).
 
 *This section is incomplete*
+
+## Modules
+Currently the bot has 3 built-in modules:
+* [Chatbot](https://github.com/Frizz925/gbf-autopilot-chatbot)
+* Raid queue
+* Viramate
+
+These modules are hardcoded and eagerly loaded. However, it would be possible to lazily load these modules alongside with other external modules from others, further improving the capability of the bot itself.
 
 ## License
 This software is licensed under the [MIT License](LICENSE)
