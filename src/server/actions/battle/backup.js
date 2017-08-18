@@ -12,14 +12,12 @@ function ingameRequest(type, checker) {
     }, next);
   }];
 }
-
 function nextHandler(next) {
   next();
 }
 
-export default function(options) {
-  return this.actions.merge(
-    ["click", ".btn-assist"], ["timeout", 1000],
+function twitterBackup(options) {
+  return [
     ["click", ".btn-twitter"], ["timeout", 1000],
     ["wait", ".txt-attention-comment"],
     ["element.text", ".txt-attention-comment", (next, actions, result) => {
@@ -36,9 +34,18 @@ export default function(options) {
         ["click", ".btn-usual-cancel"], ["timeout", 1000]
       ).then(next);
     }],
-
     // request ingame
     ["click", ".btn-assist"], ["timeout", 1000],
+  ];
+}
+
+export default function(options) {
+  return this.actions.merge(
+    ["click", ".btn-assist"], ["timeout", 1000],
+    ["check", () => options.twitter || options.chatbot, (next, actions) => {
+      actions["merge.array"](twitterBackup(options)).then(next);
+    }, nextHandler],
+
     ingameRequest("all", () => options.all),
     ingameRequest("friend", () => options.friend),
     ingameRequest("guild", () => options.guild),

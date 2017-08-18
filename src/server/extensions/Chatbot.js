@@ -83,12 +83,14 @@ export default class Chatbot extends BaseExtension {
   }
 
   pushToUsers(message) {
-    const users = this.users.slice();
-    const pushMessage = () => {
-      const user = users.pop();
-      if (!user) return;
-      this.http.post("/push", {to: user, message}).then(pushMessage, ::console.error);
-    };
-    pushMessage();
+    return new Promise((resolve, reject) => {
+      const users = this.users.slice();
+      const pushMessage = () => {
+        const user = users.pop();
+        if (!user) resolve();
+        this.http.post("/push", {to: user, message}).then(pushMessage, reject);
+      };
+      pushMessage();
+    });
   }
 }

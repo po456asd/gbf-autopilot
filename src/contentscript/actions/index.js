@@ -10,9 +10,12 @@ const respond = (result) => {
   chrome.runtime.sendMessage(result, noop);
 };
 export const actions = assign({
+  // doesn't work
+  /*
   "turn": function() {
     return packer("turn", window.stage ? window.stage.gGameStatus.turn : 0);
   },
+  */
   "hello": function() {
     return packer("hello");
   },

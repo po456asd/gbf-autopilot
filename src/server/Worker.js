@@ -62,7 +62,7 @@ export default class Worker {
     this.config = config;
     this.sendAction = sendAction;
     this.manager = manager;
-    this.port = Number(this.config.Server.ControllerPort);
+    this.port = Number(config.Server.ControllerPort);
     this.actions = _.reduce(actions, (result, action, name) => {
       result[name] = action.bind(this);
       return result;

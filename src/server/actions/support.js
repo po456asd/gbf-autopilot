@@ -33,7 +33,7 @@ export const waitBattleScreen = [
     }, nextHandler];
 
     const checkPopup = ["check", ".txt-popup-body", (next, actions) => {
-      actions["element.text"](".txt-popup-body").then((text) => {
+      actions.execute("element.text", ".txt-popup-body").then((text) => {
         text = text.trim().toLowerCase();
         if (text.indexOf("end") >= 0) {
           actions.reset().then(next);

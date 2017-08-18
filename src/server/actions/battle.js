@@ -18,20 +18,18 @@ const backHandler = [
   }, nextHandler]
 ];
 const closeScenario = [
-  "check", selectors.next,
-  (next, command, {selector}) => {
+  "check", selectors.next, (next, command, {selector}) => {
     command.merge(
       ["click", selector],
+      ["wait", selectors.next + ",.btn-control"],
       ["timeout", 1500],
       closeScenario
     ).then(next);
-  },
-  nextHandler
+  }, nextHandler
 ];
 const resultScenario = [
-  ["wait", ".btn-usual-ok"],
+  ["wait", selectors.next + ",.btn-control"],
   closeScenario,
-  ["timeout", 1500],
   ["click", ".btn-control"],
   ["timeout", 1500],
   ["check", ".pop-friend-request", (next, command) => {
@@ -53,20 +51,62 @@ function checkBeforeClick(selector) {
   ]];
 }
 
+class ChainBuilder {
+  constructor(checkers) {
+    this.checkers = checkers;
+  }
+
+  build() {
+    const clone = this.checkers.slice();
+    const recurseChecker = () => {
+      const checker = clone.shift();
+      if (!checker) return ["timeout", 10];
+      return checker((next, command) => {
+        command.merge(recurseChecker()).then(next);
+      });
+    };
+    return recurseChecker();
+  }
+}
+
 export default {
-  "battle.attack": function() {
-    const check = [
-      ["wait", [[selectors.attack, ".btn-usual-ok", ".btn-result"]]],
-      ["check", ".btn-result", (next, command, {selector}) => {
+  "battle.attack": function(skipWaiting) {
+    var check;
+    const buttons = selectors.next + "," + 
+      [selectors.attack, ".btn-result", ".btn-control"].join(",");
+    const checkNextButton = (nextCheck) => {
+      return ["check", ".btn-result", (next, command, {selector}) => {
         command.merge(
           ["click", selector],
-          ["timeout", 3000],
+          ["timeout", 1500],
           ["merge", check]
         ).then(next);
-      }, nextHandler],
-      ["check", ".btn-usual-ok", (next, command) => {
-        command["switch.array"](resultScenario).then(next);
-      }, nextHandler],
+      }, nextCheck];
+    };
+    const checkOkButton = (nextCheck) => {
+      return ["check", ".btn-usual-ok", (next, command, {selector}) => {
+        command.merge(
+          ["click", selector],
+          ["timeout", 1500],
+          ["wait", buttons],
+          ["check", ".btn-result", (next, actions, {selector}) => {
+            actions.merge(
+              ["click", selector],
+              ["merge", check]
+            ).then(next);
+          }, (next, actions) => {
+            actions.check(selectors.attack).then(next, () => {
+              actions["switch.array"](resultScenario).then(next);
+            });
+          }]
+        ).then(next);
+      }, nextCheck];
+    };
+
+    const chain = new ChainBuilder([checkNextButton, checkOkButton]);
+    check = [
+      ["wait", buttons],
+      chain.build()
     ];
 
     return this.actions.merge(
@@ -74,7 +114,9 @@ export default {
         command.click(result.selector).then(next);
       }, nextHandler],
       ["click", selectors.attack],
-      ["merge", check]
+      ["check", () => skipWaiting, nextHandler, (next, actions) => {
+        actions["merge.array"](check).then(next);
+      }]
     );
   },
   "battle.skill": function(skill) {
