@@ -118,7 +118,7 @@ const winningHands = {
       if (indexes.length >= 2) pairs.push(indexes);
     });
 
-    if (pairs.length <= 2) return false;
+    if (pairs.length < 2) return false;
 
     const result = [];
     _.each(pairs, (pair) => {
@@ -198,7 +198,7 @@ function checkPair(cards) {
 function checkJoker(cards) {
   var result = false;
   _.each(cards, ({rank}, index) => {
-    if (rank > 13) {
+    if (rank >= 99) {
       result = {
         name: "checkJoker",
         indexes: [index]
@@ -330,10 +330,17 @@ export default {
           ["click", ".prt-double-select[select='" + select + "']"],
           ["wait", ".prt-start,.prt-yes"],
           ["check", ".prt-yes", (next, actions, {selector}) => {
-            actions.merge(
-              ["click", selector],
-              "poker.double"
-            ).then(next);
+            this.sendAction("poker", "doubleResult").then(({payload}) => {
+              // quit after 5 turns
+              if (payload.turn >= 5) {
+                actions.click(".prt-no").then(next);
+              } else {
+                actions.merge(
+                  ["click", selector],
+                  "poker.double"
+                ).then(next);
+              }
+            });
           }, (next, actions) => {
             actions.click(".prt-start").then(next);
           }]
