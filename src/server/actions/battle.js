@@ -125,9 +125,22 @@ export default {
     } else if (_.isString(skill)) {
       skill = skill.split(/[-,.]/gi);
     }
+
     const [chara, number] = skill;
+    const checkOkButton = ["check", ".btn-usual-ok,.btn-usual-close", (next, actions, {selector}) => {
+      actions.click(selector).then(next);
+    }, nextHandler];
+    const checkAttackButton = ["check", selectors.attack, nextHandler, (next, actions) => {
+      actions["switch.array"](resultScenario).then(next);
+    }];
+
     if (this.config.Viramate.QuickSkill) {
-      return this.actions.click(`.ability-character-num-${chara}-${number}`);
+      return this.actions.merge(
+        checkAttackButton, checkOkButton,
+        ["check", `.ability-character-num-${chara}-${number}`, (next, actions, {selector}) => {
+          actions.click(selector).then(next);
+        }, nextHandler]
+      );
     }
 
     const charaCommand = [
@@ -136,6 +149,7 @@ export default {
     ];
 
     return this.actions.merge(
+      checkAttackButton, checkOkButton,
       ["check", `.prt-command-chara.chara${chara}`, nextHandler, (next, command) => {
         command["merge.array"](charaCommand).then(next);
       }],

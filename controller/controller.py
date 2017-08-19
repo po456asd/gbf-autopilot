@@ -35,15 +35,17 @@ def windowRect(json):
 @app.route('/start', methods=['POST'])
 def start():
     global commandStarted
-    print('Command started')
-    commandStarted = True
+    if not commandStarted:
+        commandStarted = True
+        print('Command started')
     return 'OK'
 
 @app.route('/stop', methods=['POST'])
 def stop():
     global commandStarted
-    print('Command stopped')
-    commandStarted = False
+    if commandStarted:
+        commandStarted = False
+        print('Command stopped')
     return 'OK'
 
 def doClick(json, clicks=1):
@@ -89,9 +91,11 @@ def getKeyPressed(keyCode):
     return retval == 1
 
 def stopCommandServer():
+    global commandStarted
     print('Stopping command server...')
     try:
         requests.post('http://localhost:%d/stop' % COMMAND_PORT)
+        commandStarted = False
         print('Command server stopped')
     except:
         print('Failed to stop the command server!')

@@ -37,7 +37,7 @@ export default {
   "move": function(selector, timeout) {
     return new Promise((resolve, reject) => {
       executeQuery(this, selector, timeout).then((data) => {
-        request(this, "move", data).then(resolve, reject);
+        request(this, data, "move").then(resolve, reject);
       }, reject);
     });
   }

@@ -21,18 +21,31 @@ const state = {
   }
 };
 
+const port = chrome.runtime.connect();
+port.onMessage.addListener((message) => {
+  if (message.type !== "broadcast") return;
+  switch (message.action) {
+  case "START":
+    state.start();
+    break;
+  case "STOP":
+    state.stop();
+    break;
+  }
+});
+
 window.addEventListener("load", () => {
   $("#btn_start").on("click", () => {
-    chrome.runtime.sendMessage("START");
+    chrome.runtime.sendMessage({action: "START"});
     state.start();
     window.close();
   });
   $("#btn_stop").on("click", () => {
-    chrome.runtime.sendMessage("STOP");
+    chrome.runtime.sendMessage({action: "STOP"});
     state.stop();
   });
-  chrome.runtime.sendMessage("CHECK", (running) => {
-    running ? state.start() : state.stop();
+  chrome.runtime.sendMessage("CHECK", ({payload}) => {
+    payload ? state.start() : state.stop();
   });
 });
 

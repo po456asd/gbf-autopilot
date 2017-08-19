@@ -22,7 +22,9 @@ function twitterBackup(options) {
     ["wait", ".txt-attention-comment"],
     ["element.text", ".txt-attention-comment", (next, actions, result) => {
       const message = result.match(/Battle ID: (.+) pic.twitter/)[1];
-      actions.chatbot(message).then(next);
+      if (options.chatbot) {
+        actions.chatbot(message).then(next);
+      }
     }, nextHandler],
     ["check", () => options.twitter, (next, actions) => {
       actions.merge(

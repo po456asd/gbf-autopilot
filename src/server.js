@@ -34,6 +34,7 @@ export default class Server {
       chatbot: new Chatbot()
     });
     this.listeners = {
+      "start": ::this.onStart,
       "action": ::this.onActionSuccess,
       "action.fail": ::this.onActionFail,
       "disconnect": ::this.onDisconnect
@@ -83,6 +84,14 @@ export default class Server {
   }
 
   onConnect(socket) {
+    console.log(`Client '${socket.id}' connected!`);
+  }
+
+  getAction(socket, id) {
+    return this.sockets[socket.id].actions[id];
+  }
+
+  onStart(socket) {
     if (!this.running) this.running = true;
 
     const errorHandler = (err) => {
@@ -90,7 +99,6 @@ export default class Server {
       socket.disconnect();
     };
 
-    console.log(`Client '${socket.id}' connected!`);
     this.configHandler().then(({config, scenario}) => {
       this.refreshConfig(config);
 
@@ -113,10 +121,6 @@ export default class Server {
         worker.start(scenario);
       }, errorHandler);
     }, errorHandler);
-  }
-
-  getAction(socket, id) {
-    return this.sockets[socket.id].actions[id];
   }
 
   onAction(socket, {id, payload}, callback) {
@@ -192,7 +196,7 @@ export default class Server {
       const data = packer(actionName, payload);
       data.id = id;
       data.timeout = timeout;
-      data.type = "response";
+      data.type = "request";
 
       console.log(`Socket: ${expression}`);
       realSocket.emit("action", data);
@@ -207,7 +211,7 @@ export default class Server {
       clearTimeout(timer);
     });
     clearTimeout(timer);
-    socket.disconnect();
+    socket.emit("stop");
     worker.stop();
     return this;
   }
@@ -220,11 +224,12 @@ export default class Server {
   }
 
   stop() {
+    if (!this.running) return;
     console.log("Stopping...");
-    if (this.running) this.running = false;
-    forEach(this.sockets, (socket) => {
-      socket.socket.disconnect();
+    forEach(this.sockets, (socket, id) => {
+      this.stopSocket(id);
     });
+    this.running = false;
     this.sockets = {};
     return this;
   }

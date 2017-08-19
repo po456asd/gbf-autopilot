@@ -6,6 +6,7 @@ import actionScenario from "./actions/scenario";
 import actionRaid from "./actions/raid";
 import actionChatbot from "./actions/chatbot";
 import actionViramate from "./actions/viramate";
+import actionPoker from "./actions/poker";
 
 /* 
  * Every single action must return a Promise.
@@ -32,12 +33,7 @@ const actions = _.assign({
   },
   "run": function(callback) {
     return new Promise((resolve, reject) => {
-      const result = callback.apply(this);
-      if (result === false) {
-        reject();
-      } else {
-        resolve(result);
-      }
+      callback.call(this, resolve, reject);
     });
   },
   "finish": function() {
@@ -54,7 +50,7 @@ const actions = _.assign({
 }, 
 actionScenario, actionClick,
 actionSupport, actionBattle, actionRaid,
-actionChatbot, actionViramate);
+actionChatbot, actionViramate, actionPoker);
 
 export default class Worker {
   constructor(server, config, sendAction, manager) {

@@ -1,104 +1,181 @@
+import _ from "lodash";
+import shortid from "shortid";
 import ViramateApi from "./background/ViramateApi";
 import LiveReload from "./background/LiveReload";
 import io from "socket.io-client";
 
+const log = (message) => {
+  console.log("bg>", message);
+};
+
 if (process.env.NODE_ENV !== "production") {
+  log("Extension running in development mode");
   LiveReload();
 }
 
+var pagePort;
+var running = false;
 const viramateApi = new ViramateApi(document.querySelector("#viramate_api"));
 const serverUrl = window.serverUrl || "http://localhost:49544/";
-const subscribers = [];
-const broadcast = (payload) => {
-  subscribers.forEach((tabId) => {
-    chrome.tabs.sendMessage(tabId, payload);
-  });
-};
-
-var socket;
-var running = false;
-function startIo(tab) {
-  if (running) {
-    throw new Error("Socket already running!");
-  }
-  socket = io(serverUrl);
-  socket.on("connect", () => {
-    running = true;
-    broadcast("START");
-    console.log("Started socket");
-  });
-  socket.on("disconnect", () => {
-    running = false;
-    socket = null;
-    broadcast("STOP");
-    console.log("Stopped socket");
-  });
-  socket.on("action", ({action, id, payload, timeout}) => {
-    if (action == "viramate") {
-      viramateApi.sendApiRequest(payload, id).then((result) => {
-        socket.emit("action", {id, action, payload: result});
-      }, (result) => {
-        socket.emit("action.fail", {id, action, payload: result});
-      });
-      return;
-    }
-
-    var rejected = false;
-    function sendMessage() {
-      if (rejected) return;
-      chrome.tabs.sendMessage(tab.id, {action, payload, timeout}, (data) => {
-        if (data == undefined && socket) {
-          setTimeout(sendMessage, 500);
-          return;
-        }
-        const {action, payload, success} = data;
-        if (success) {
-          socket.emit("action", {id, action, payload});
-        } else {
-          socket.emit("action.fail", {id, action, payload});
-        }
-      });
-    }
-    sendMessage();
-    setTimeout(() => {
-      rejected = true;
-    }, timeout);
-  });
-}
-
-var currentTab;
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  switch (request) {
+const handleRequest = (request, sender, sendResponse, onStart, onLoad) => {
+  switch (request.action) {
   case "CHECK":
     sendResponse(running);
     break;
-  case "SUBSCRIBE":
-    subscribers.push(sender.tab.id);
-    break;
-  case "UNSUBSCRIBE":
-    subscribers.splice(subscribers.indexOf(sender.tab.id), 1);
-    break;
   case "START":
-    if (!currentTab) {
-      sendResponse(new Error("No tab loaded!"));
-      return;
-    }
-    startIo(currentTab);
+    (onStart || _.noop)();
     break;
   case "STOP":
     if (!socket) {
-      sendResponse(new Error("Socket not connected!"));
+      sendResponse(new Error("Socket not connected!"), false);
       return;
     }
     socket.disconnect();
     break;
   case "LOADED":
     chrome.pageAction.show(sender.tab.id);
-    currentTab = sender.tab;
+    (onLoad || _.noop)();
     break;
   default:
-    sendResponse("UNKNOWN");
+    sendResponse("UNKNOWN", false);
     return;
   }
   sendResponse("OK");
+};
+
+const ports = [];
+const pendingMessages = {};
+const broadcast = (action, payload) => {
+  const id = shortid.generate();
+  _.each(ports, (port) => {
+    port.postMessage({
+      id, action, payload,
+      type: "broadcast"
+    });
+  });
+};
+
+var subscriber;
+const socket = io(serverUrl);
+const startSocket = () => {
+  if (running) {
+    throw new Error("Socket already running!");
+  }
+  running = true;
+  broadcast("START");
+  socket.emit("start");
+  log("Started socket");
+};
+const stopSocket = () => {
+  if (!running) {
+    throw new Error("Socket not running!");
+  }
+  running = false;
+  broadcast("STOP");
+  log("Stopped socket");
+};
+socket.on("connect", () => {
+  log("Socket connected.");
+});
+socket.on("disconnect", () => {
+  log("Socket disconnected. Reconnecting in 5 seconds...");
+  setTimeout(() => {
+    socket.connect();
+  }, 5000);
+});
+socket.on("stop", stopSocket);
+socket.on("action", (message) => {
+  subscriber ? subscriber(message) : log(message);
+});
+
+const startAutopilot = () => {
+  if (running) return;
+
+  const sendMessage = (action, payload, timeout) => {
+    return new Promise((resolve, reject) => {
+      const id = shortid.generate();
+      const message = {
+        id, action, payload, timeout,
+        type: "request"
+      };
+      pendingMessages[id] = {message, resolve, reject};
+      pagePort.postMessage(message);
+
+      setTimeout(() => {
+        delete pendingMessages[id];
+      }, timeout);
+    });
+  };
+
+  subscriber = (message) => {
+    const {action, id, payload, timeout} = message;
+
+    if (action == "viramate") {
+      viramateApi.sendApiRequest(payload, id).then((result) => {
+        socket.emit("action", {id, action, payload: result, type: "response"});
+      }, (result) => {
+        socket.emit("action.fail", {id, action, payload: result, type: "response"});
+      });
+      return;
+    }
+
+    sendMessage(action, payload, timeout).then((response) => {
+      const {action, payload} = response;
+      socket.emit("action", {id, action, payload, type: "response"});
+    }, (response) => {
+      const {action, payload} = response;
+      socket.emit("action.fail", {id, action, payload, type: "response"});
+    });
+  };
+
+  startSocket();
+};
+
+const loadAutopilot = (port) => {
+  if (pagePort) {
+    log("Disconnecting previous page port");
+    pagePort.disconnect();
+  }
+  pagePort = port;
+  console.log(port);
+  _.each(pendingMessages, (pending) => {
+    port.sendMessage(pending.message);
+  });
+};
+
+chrome.runtime.onConnect.addListener((port) => {
+  ports.push(port);
+  const sender = port.sender;
+  port.onMessage.addListener((msg) => {
+    const {id, action, type} = msg;
+    if (type == "request") {
+      handleRequest(msg, sender, (response, success) => {
+        port.postMessage({
+          id, action,
+          type: "response",
+          payload: response,
+          success: success !== false
+        });
+      }, startAutopilot, () => loadAutopilot(port));
+    } else {
+      const pending = pendingMessages[id];
+      if (!pending) return;
+      const success = msg.success;
+      if (success) {
+        pending.resolve(msg);
+      } else {
+        pending.reject(msg);
+      }
+      delete pendingMessages[id];
+    }
+  });
+  port.onDisconnect.addListener(() => {
+    ports.splice(ports.indexOf(port), 1);
+  });
+});
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  handleRequest(request, sender, sendResponse, startAutopilot, () => {
+    throw new Error("Load event can only be triggered from a long-lived connection");
+  });
 });
