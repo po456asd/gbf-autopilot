@@ -1,6 +1,11 @@
 import _ from "lodash";
 import {request as requestClick} from "./click";
 
+const pokerVars = {
+  winning: 0,
+  chips: []
+};
+
 function findMatchingCards(cards) {
   const matches = {
     rank: {},
@@ -273,6 +278,7 @@ function keepSuggestion(cards) {
     ["click", ".prt-ok:not(.disable)"],
     ["wait", ".prt-start,.prt-yes,.prt-no"],
     ["check", ".prt-yes", (next, actions, {selector}) => {
+      pokerVars.winning = 0;
       actions.merge(
         ["click", selector],
         "poker.double"
@@ -298,6 +304,7 @@ export default {
   poker: function() {
     return new Promise((resolve, reject) => {
       const processCards = (payload) => {
+        pokerVars.chips.push(Number(payload.medal.number));
         const scenario = keepSuggestion.call(this, _.values(payload.card_list));
         this.actions["merge.array"](scenario).then(resolve, reject);
       };
@@ -316,20 +323,44 @@ export default {
     });
   },
   "poker.double": function() {
+    const winningCap = Number(this.config.Poker.WinningCap);
+    const winningRates = {
+      base: Number(this.config.Poker.WinningRateBase),
+      modifier: Number(this.config.Poker.WinningRateModifier)
+    };
+
     return new Promise((resolve, reject) => {
       this.sendAction("poker", "doubleStart").then(({payload}) => {
         const prediction = predictDouble(payload.card_first);
         var select = "high";
         if (prediction.high < prediction.low) {
           select = "low";
+        } else if (prediction.high == prediction.low) { // in case of 50:50, just randomize
+          select = Math.random() < 0.5 ? "low" : "high";
         }
         this.actions.merge(
           ["click", ".prt-double-select[select='" + select + "']"],
           ["wait", ".prt-start,.prt-yes"],
           ["check", ".prt-yes", (next, actions, {selector}) => {
             this.sendAction("poker", "doubleResult").then(({payload}) => {
-              // quit after 5 turns
-              if (payload.turn >= 5) {
+              if (payload.result == "win") {
+                pokerVars.winning++;
+              }
+
+              const nextPredict = predictDouble(payload.card_second);
+              const highestRate = nextPredict.high > nextPredict.low ?
+                nextPredict.high : nextPredict.low;
+
+              // the minimum rate to proceed after hitting the winning cap
+              // is taken from the base winning rate modified by
+              // the modifier and multplier from how many winning rounds passed the cap
+              const rateMultiplier = (pokerVars.winning - winningRates.modifier);
+              const minimumRate = winningRates.base + (winningRates.modifier * rateMultiplier);
+
+              // quit after the rounds won hit the cap
+              // and the next round's highest predicted winning rate 
+              // is below the calculated minimum rate
+              if (pokerVars.winning >= winningCap && highestRate < minimumRate) {
                 actions.merge(
                   ["click", ".prt-no"],
                   ["wait", ".prt-start"],

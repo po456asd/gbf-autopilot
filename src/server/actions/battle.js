@@ -5,6 +5,7 @@ import battleBackup from "./battle/backup";
 const selectors = {
   "attack": ".btn-attack-start.display-on",
   "next": [
+    ".btn-result",
     ".btn-usual-ok",
     ".btn-usual-cancel",
     ".btn-usual-close",
@@ -113,9 +114,15 @@ export default {
       ["check", ".prt-advice", (next, command, result) => {
         command.click(result.selector).then(next);
       }, nextHandler],
-      ["click", selectors.attack],
-      ["check", () => skipWaiting, nextHandler, (next, actions) => {
+      ["check", ".btn-result,.btn-usual-ok,.btn-usual-close", (next, actions) => {
         actions["merge.array"](check).then(next);
+      }, (next, actions) => {
+        actions.merge(
+          ["click", selectors.attack],
+          ["check", () => skipWaiting, nextHandler, (next, actions) => {
+            actions["merge.array"](check).then(next);
+          }]
+        ).then(next);
       }]
     );
   },
