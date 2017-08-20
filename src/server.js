@@ -204,7 +204,9 @@ export default class Server {
       data.timeout = timeout;
       data.type = "request";
 
-      console.log(`Socket: ${expression}`);
+      if (this.config.Debug.LogSocket) {
+        console.log(`Socket: ${expression}`);
+      }
       realSocket.emit("action", data);
     });
   }

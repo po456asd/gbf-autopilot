@@ -77,7 +77,9 @@ export default class Worker {
     const handler = this.actions[name] || (() => {
       return this.sendAction.apply(this, [name].concat(args));
     });
-    console.log("Action: " + name + "(" + args.map((val) => JSON.stringify(val)).join(", ") + ")");
+    if (this.config.Debug.LogAction) {
+      console.log("Action: " + name + "(" + args.map((val) => JSON.stringify(val)).join(", ") + ")");
+    }
     return handler.apply(this, args);
   }
 

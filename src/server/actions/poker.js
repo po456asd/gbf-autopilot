@@ -3,10 +3,37 @@ import {request as requestClick} from "./click";
 
 const pokerVars = {
   winningRounds: 0,
-  winningChips: 0
+  winningChips: 0,
+  availableCards: {},
 };
 
-function findMatchingCards(cards) {
+function parseCard(card) {
+  const [suit, rank] = card.split("_");
+  const result = {
+    suit: Number(suit),
+    rank: Number(rank)
+  };
+  // in case of Ace, put it higher than others
+  if (result.rank == 1) result.rank = 14;
+  return result;
+}
+
+function initPokerVars() {
+  pokerVars.winningChips = 0;
+  pokerVars.winningRounds = 0;
+  _.range(2, 15).forEach((rank) => {
+    pokerVars.availableCards[rank] = 4;
+  });
+}
+
+function rememberCard(card) {
+  card = parseCard(card);
+  if (pokerVars.availableCards[card.rank] > 0) {
+    pokerVars.availableCards[card.rank]--;
+  }
+}
+
+function findMatchingCards(cards, matchJoker) {
   const matches = {
     rank: {},
     suit: {}
@@ -23,12 +50,14 @@ function findMatchingCards(cards) {
     _.each(cards, (initialCard, initialIndex) => {
       // no need to check existing rank/suit
       if (hasMatch(type, initialCard)) return;
+      // skip joker cards
+      if (initialCard[type] >= 99) return;
       addMatch(type, initialCard, initialIndex);
       _.each(cards, (card, index) => {
         if (index == initialIndex) return;
         if (card[type] == initialCard[type]) {
           addMatch(type, card, index);
-        } else if (card[type] >= 99) { // check for joker cards
+        } else if (matchJoker && card[type] >= 99) { // check for joker cards
           addMatch(type, initialCard, index);
         }
       });
@@ -38,11 +67,11 @@ function findMatchingCards(cards) {
   return matches;
 }
 
-function someOfAKind(cards, min) {
-  const matches = findMatchingCards(cards);
+function someOfAKind(cards, min, matchJoker) {
+  const matches = findMatchingCards(cards, matchJoker);
   var result = false;
   _.each(matches.rank, (indexes) => {
-    if (indexes.length >= min) {
+    if (indexes.length == min) {
       result = indexes;
       return false;
     }
@@ -63,7 +92,7 @@ const winningHands = {
     return result;
   },
   fiveOfAKind(cards) {
-    return someOfAKind(cards, 5);
+    return someOfAKind(cards, 5, true);
   },
   straightFlush(cards) {
     const straight = this.straight(cards);
@@ -72,16 +101,16 @@ const winningHands = {
       flush !== false;
   },
   fourOfAKind(cards) {
-    return someOfAKind(cards, 4);
+    return someOfAKind(cards, 4, true);
   },
   fullHouse(cards) {
-    const matches = findMatchingCards(cards);
+    const matches = findMatchingCards(cards, true);
     const numberOfRanks = _.keys(matches.ranks).length;
     if (numberOfRanks != 2) return false;
     return [0, 1, 2, 3, 4];
   },
   flush(cards) {
-    const matches = findMatchingCards(cards);
+    const matches = findMatchingCards(cards, true);
     var result = false;
     _.each(matches.suit, (indexes) => {
       if (indexes.length >= 5) {
@@ -112,27 +141,30 @@ const winningHands = {
     return result;
   },
   threeOfAKind(cards) {
-    return someOfAKind(cards, 3);
+    return someOfAKind(cards, 3, true);
   },
   twoPair(cards) {
-    const matches = findMatchingCards(cards);
+    const matches = findMatchingCards(cards, true);
     const pairs = [];
     _.each(matches.rank, (indexes) => {
-      if (indexes.length >= 2) pairs.push(indexes);
+      if (indexes.length == 2) pairs.push(indexes);
+      if (pairs.length >= 2) return false;
     });
 
     if (pairs.length < 2) return false;
 
-    const result = [];
+    var result = [];
     _.each(pairs, (pair) => {
       _.each(pair, (index) => {
         result.push(index);
       });
     });
-    return result;
+    result = _.uniq(result);
+
+    return result.length == 4 ? result : false;
   },
   onePair(cards) {
-    const matches = findMatchingCards(cards);
+    const matches = findMatchingCards(cards, false);
     var result = false;
     _.each(matches.rank, (indexes) => {
       if (indexes.length >= 2) {
@@ -220,17 +252,6 @@ const checkers = [
   checkJoker
 ];
 
-function parseCard(card) {
-  const [suit, rank] = card.split("_");
-  const result = {
-    suit: Number(suit),
-    rank: Number(rank)
-  };
-  // in case of Ace
-  if (result.rank == 1) result.rank = 14;
-  return result;
-}
-
 function parseCards(cards) {
   return _.map(cards, parseCard);
 }
@@ -295,11 +316,24 @@ function keepSuggestion(cards) {
 }
 
 function predictDouble(card) {
-  const rank = parseCard(card).rank;
-  const lowChance = (rank - 2) / 12; // eg. A -> (14 - 2) / 12 = 1
+  const initialRank = parseCard(card).rank;
+  var high = 0, low = 0, total = 0;
+
+  _.each(pokerVars.availableCards, (count, rank) => {
+    // if our card is higher than this card, count as low
+    if (initialRank > rank) {
+      low += count;
+    } else if (initialRank < rank) {
+      high += count;
+    } else {
+      return;
+    }
+    total += count;
+  });
+
   return {
-    low: lowChance,
-    high: 1.0 - lowChance
+    low: low / total,
+    high: high / total
   };
 }
 
@@ -325,8 +359,7 @@ export default {
     });
   },
   "poker.double": function() {
-    pokerVars.winningChips = 0;
-    pokerVars.winningRounds = 0;
+    initPokerVars();
     return this.actions["poker.double.loop"]();
   },
   "poker.double.loop": function() {
@@ -338,8 +371,7 @@ export default {
       base: Number(this.config.Poker.WinningRateBase),
       modifier: Number(this.config.Poker.WinningRateModifier)
     };
-
-    return new Promise((resolve, reject) => {
+    const doubleUpLoop = (resolve, reject) => {
       this.sendAction("poker", "doubleStart").then(({payload}) => {
         const prediction = predictDouble(payload.card_first);
         var select = "high";
@@ -348,6 +380,11 @@ export default {
         } else if (prediction.high == prediction.low) { // in case of 50:50, just randomize
           select = Math.random() < 0.5 ? "low" : "high";
         }
+
+        const currentRate = select == "high" ? prediction.high : prediction.low;
+        console.log("-------- DOUBLE UP PREDICTION --------");
+        console.log("Winning rate: " + currentRate + " " + select);
+
         this.actions.merge(
           ["click", ".prt-double-select[select='" + select + "']"],
           ["wait", ".prt-start,.prt-yes"],
@@ -358,6 +395,7 @@ export default {
                 pokerVars.winningChips = payload.pay_medal;
               }
 
+              rememberCard(payload.card_first);
               const nextPredict = predictDouble(payload.card_second);
               const highestRate = nextPredict.high > nextPredict.low ?
                 nextPredict.high : nextPredict.low;
@@ -401,6 +439,11 @@ export default {
             actions.click(".prt-start").then(next);
           }]
         ).then(resolve, reject);
+      }, reject);
+    };
+    return new Promise((resolve, reject) => {
+      this.actions.wait(".prt-double-select:not(.disable)").then(() => {
+        doubleUpLoop(resolve, reject);
       }, reject);
     });
   }
