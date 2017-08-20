@@ -44,7 +44,7 @@ window.addEventListener("load", () => {
     chrome.runtime.sendMessage({action: "STOP"});
     state.stop();
   });
-  chrome.runtime.sendMessage("CHECK", ({payload}) => {
+  chrome.runtime.sendMessage({action: "CHECK"}, (payload) => {
     payload ? state.start() : state.stop();
   });
 });

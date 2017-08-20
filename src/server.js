@@ -34,7 +34,8 @@ export default class Server {
       chatbot: new Chatbot()
     });
     this.listeners = {
-      "start": ::this.onStart,
+      "start": ::this.onSocketStart,
+      "stop": ::this.onSocketStop,
       "action": ::this.onActionSuccess,
       "action.fail": ::this.onActionFail,
       "disconnect": ::this.onDisconnect
@@ -91,7 +92,7 @@ export default class Server {
     return this.sockets[socket.id].actions[id];
   }
 
-  onStart(socket) {
+  onSocketStart(socket) {
     if (!this.running) this.running = true;
 
     const errorHandler = (err) => {
@@ -121,6 +122,10 @@ export default class Server {
         worker.start(scenario);
       }, errorHandler);
     }, errorHandler);
+  }
+
+  onSocketStop(socket) {
+    this.stopSocket(socket.id);
   }
 
   onAction(socket, {id, payload}, callback) {

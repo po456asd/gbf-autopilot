@@ -17,24 +17,20 @@ var pagePort;
 var running = false;
 const viramateApi = new ViramateApi(document.querySelector("#viramate_api"));
 const serverUrl = window.serverUrl || "http://localhost:49544/";
-const handleRequest = (request, sender, sendResponse, onStart, onLoad) => {
+const handleRequest = (request, sender, sendResponse, callbacks) => {
   switch (request.action) {
   case "CHECK":
     sendResponse(running);
     break;
   case "START":
-    (onStart || _.noop)();
+    (callbacks.onStart || _.noop)();
     break;
   case "STOP":
-    if (!socket) {
-      sendResponse(new Error("Socket not connected!"), false);
-      return;
-    }
-    socket.disconnect();
+    (callbacks.onStop || _.noop)();
     break;
   case "LOADED":
     chrome.pageAction.show(sender.tab.id);
-    (onLoad || _.noop)();
+    (callbacks.onLoad || _.noop)();
     break;
   default:
     sendResponse("UNKNOWN", false);
@@ -72,6 +68,7 @@ const stopSocket = () => {
   }
   running = false;
   broadcast("STOP");
+  socket.emit("stop");
   log("Stopped socket");
 };
 socket.on("connect", () => {
@@ -131,13 +128,17 @@ const startAutopilot = () => {
   startSocket();
 };
 
+const stopAutopilot = () => {
+  if (!running) return;
+  stopSocket();
+};
+
 const loadAutopilot = (port) => {
   if (pagePort) {
     log("Disconnecting previous page port");
     pagePort.disconnect();
   }
   pagePort = port;
-  console.log(port);
   _.each(pendingMessages, (pending) => {
     port.sendMessage(pending.message);
   });
@@ -156,7 +157,11 @@ chrome.runtime.onConnect.addListener((port) => {
           payload: response,
           success: success !== false
         });
-      }, startAutopilot, () => loadAutopilot(port));
+      }, {
+        onStart: startAutopilot,
+        onStop: stopAutopilot,
+        onLoad: () => loadAutopilot(port)
+      });
     } else {
       const pending = pendingMessages[id];
       if (!pending) return;
@@ -175,7 +180,11 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  handleRequest(request, sender, sendResponse, startAutopilot, () => {
-    throw new Error("Load event can only be triggered from a long-lived connection");
+  handleRequest(request, sender, sendResponse, {
+    onStart: startAutopilot,
+    onStop: stopAutopilot,
+    onLoad: () => {
+      throw new Error("Load event can only be triggered from a long-lived connection");
+    }
   });
 });

@@ -1,10 +1,6 @@
 import _ from "lodash";
 import {request as requestClick} from "./click";
 
-function nextHandler(next) {
-  next();
-}
-
 function findMatchingCards(cards) {
   const matches = {
     rank: {},
@@ -25,7 +21,8 @@ function findMatchingCards(cards) {
       addMatch(type, initialCard, initialIndex);
       _.each(cards, (card, index) => {
         if (index == initialIndex) return;
-        if (card[type] == initialCard[type]) {
+        if (card[type] == initialCard[type] || 
+            card.rank >= 99) { // check for joker cards
           addMatch(type, card, index);
         }
       });
@@ -333,7 +330,12 @@ export default {
             this.sendAction("poker", "doubleResult").then(({payload}) => {
               // quit after 5 turns
               if (payload.turn >= 5) {
-                actions.click(".prt-no").then(next);
+                actions.merge(
+                  ["click", ".prt-no"],
+                  ["wait", ".prt-start"],
+                  ["timeout", 1000],
+                  ["click", ".prt-start:not(.disable)"]
+                ).then(next);
               } else {
                 actions.merge(
                   ["click", selector],
