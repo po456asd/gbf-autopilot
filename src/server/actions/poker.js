@@ -126,12 +126,19 @@ const winningHands = {
     });
     var lastRank = -1;
     var result = [0, 1, 2, 3, 4];
+    var wasJoker = false;
     _.each(ranks, (rank) => {
+      if (rank >= 99) {
+        wasJoker = true;
+        return;
+      }
       if (lastRank == -1) {
         lastRank = rank;
         return;
       }
-      if (rank - lastRank != -1) {
+      if (wasJoker) {
+        wasJoker = false;
+      } else if (rank - lastRank != -1) {
         result = false;
         return false;
       }
