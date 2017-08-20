@@ -52,6 +52,7 @@ const broadcast = (action, payload) => {
 };
 
 var subscriber;
+var startOnConnect = true;
 const socket = io(serverUrl);
 const startSocket = () => {
   if (running) {
@@ -59,7 +60,12 @@ const startSocket = () => {
   }
   running = true;
   broadcast("START");
-  socket.emit("start");
+  if (!socket.connected) {
+    startOnConnect = true;
+    socket.connect();
+  } else {
+    socket.emit("start");
+  }
   log("Started socket");
 };
 const stopSocket = () => {
@@ -72,6 +78,10 @@ const stopSocket = () => {
   log("Stopped socket");
 };
 socket.on("connect", () => {
+  if (startOnConnect) {
+    socket.emit("start");
+    startOnConnect = false;
+  }
   log("Socket connected.");
 });
 socket.on("disconnect", () => {

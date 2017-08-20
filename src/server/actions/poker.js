@@ -26,9 +26,10 @@ function findMatchingCards(cards) {
       addMatch(type, initialCard, initialIndex);
       _.each(cards, (card, index) => {
         if (index == initialIndex) return;
-        if (card[type] == initialCard[type] || 
-            card.rank >= 99) { // check for joker cards
+        if (card[type] == initialCard[type]) {
           addMatch(type, card, index);
+        } else if (card[type] >= 99) { // check for joker cards
+          addMatch(type, initialCard, index);
         }
       });
     });
@@ -259,6 +260,8 @@ function keepSuggestion(cards) {
   };
 
   cards = parseCards(cards);
+  console.log(cards);
+
   var indexes = [];
   _.each(checkers, (checker) => {
     const result = checker(cards);
@@ -352,29 +355,35 @@ export default {
             this.sendAction("poker", "doubleResult").then(({payload}) => {
               if (payload.result == "win") {
                 pokerVars.winningRounds++;
-                pokerVars.winningChips += payload.pay_medal;
+                pokerVars.winningChips = payload.pay_medal;
               }
 
               const nextPredict = predictDouble(payload.card_second);
               const highestRate = nextPredict.high > nextPredict.low ?
                 nextPredict.high : nextPredict.low;
 
-              console.log("Rounds won: " + pokerVars.winning);
-              console.log("Next round winning rate is: " + highestRate);
-
-              var rateMultiplier = 0;
+              var minimumRate = 0;
               if (pokerVars.winningChips >= winningCaps.chips) {
                 // multiplier is calculated from how many chips are won that have passed the cap
-                rateMultiplier = (pokerVars.winningChips / winningCaps.chips);
+                const rateMultiplier = (pokerVars.winningChips / winningCaps.chips);
+                minimumRate = winningRates.base + (winningRates.modifier * rateMultiplier);
               } else if (pokerVars.winningRounds >= winningCaps.round) {
                 // multiplier is calculated from how many winning rounds have passed the cap
-                rateMultiplier = (pokerVars.winningRounds - winningCaps.round);
+                const rateMultiplier = (pokerVars.winningRounds - winningCaps.round);
+                minimumRate = winningRates.base + (winningRates.modifier * rateMultiplier);
               }
+
+              const shouldStop = highestRate < minimumRate;
+              console.log("-------- DOUBLE UP RESULT --------");
+              console.log("Chips won: " + pokerVars.winningChips);
+              console.log("Rounds won: " + pokerVars.winningRounds);
+              console.log("Next round winning rate is: " + highestRate);
+              console.log("Next round minimum winning rate: " + minimumRate);
+              console.log(shouldStop ? "Exiting double up" : "Continuing double up");
 
               // the minimum winning rate is taken from the base cap modified by multiplied modifier
               // finally, decide if the bot should stop depending on the next predicted winning rate
-              const minimumRate = winningRates.base + (winningRates.modifier * rateMultiplier);
-              if (highestRate < minimumRate) {
+              if (shouldStop) {
                 actions.merge(
                   ["click", ".prt-no"],
                   ["wait", ".prt-start"],
@@ -384,7 +393,7 @@ export default {
               } else {
                 actions.merge(
                   ["click", selector],
-                  "poker.double"
+                  "poker.double.loop"
                 ).then(next);
               }
             });

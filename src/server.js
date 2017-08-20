@@ -89,7 +89,8 @@ export default class Server {
   }
 
   getAction(socket, id) {
-    return this.sockets[socket.id].actions[id];
+    socket = this.sockets[socket.id];
+    return socket ? socket.actions[id] : null;
   }
 
   onSocketStart(socket) {
