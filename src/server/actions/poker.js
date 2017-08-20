@@ -2,8 +2,8 @@ import _ from "lodash";
 import {request as requestClick} from "./click";
 
 const pokerVars = {
-  winning: 0,
-  chips: []
+  winningRounds: 0,
+  winningChips: 0
 };
 
 function findMatchingCards(cards) {
@@ -263,6 +263,7 @@ function keepSuggestion(cards) {
   _.each(checkers, (checker) => {
     const result = checker(cards);
     if (result !== false) {
+      result.indexes = _.uniq(result.indexes);
       indexes = result.indexes;
       console.log(result);
       return false;
@@ -278,7 +279,6 @@ function keepSuggestion(cards) {
     ["click", ".prt-ok:not(.disable)"],
     ["wait", ".prt-start,.prt-yes,.prt-no"],
     ["check", ".prt-yes", (next, actions, {selector}) => {
-      pokerVars.winning = 0;
       actions.merge(
         ["click", selector],
         "poker.double"
@@ -304,7 +304,6 @@ export default {
   poker: function() {
     return new Promise((resolve, reject) => {
       const processCards = (payload) => {
-        pokerVars.chips.push(Number(payload.medal.number));
         const scenario = keepSuggestion.call(this, _.values(payload.card_list));
         this.actions["merge.array"](scenario).then(resolve, reject);
       };
@@ -323,7 +322,15 @@ export default {
     });
   },
   "poker.double": function() {
-    const winningCap = Number(this.config.Poker.WinningCap);
+    pokerVars.winningChips = 0;
+    pokerVars.winningRounds = 0;
+    return this.actions["poker.double.loop"]();
+  },
+  "poker.double.loop": function() {
+    const winningCaps = {
+      round: Number(this.config.Poker.WinningRoundCap),
+      chips: Number(this.config.Poker.WinningChipsCap)
+    };
     const winningRates = {
       base: Number(this.config.Poker.WinningRateBase),
       modifier: Number(this.config.Poker.WinningRateModifier)
@@ -344,23 +351,30 @@ export default {
           ["check", ".prt-yes", (next, actions, {selector}) => {
             this.sendAction("poker", "doubleResult").then(({payload}) => {
               if (payload.result == "win") {
-                pokerVars.winning++;
+                pokerVars.winningRounds++;
+                pokerVars.winningChips += payload.pay_medal;
               }
 
               const nextPredict = predictDouble(payload.card_second);
               const highestRate = nextPredict.high > nextPredict.low ?
                 nextPredict.high : nextPredict.low;
 
-              // the minimum rate to proceed after hitting the winning cap
-              // is taken from the base winning rate modified by
-              // the modifier and multplier from how many winning rounds passed the cap
-              const rateMultiplier = (pokerVars.winning - winningRates.modifier);
-              const minimumRate = winningRates.base + (winningRates.modifier * rateMultiplier);
+              console.log("Rounds won: " + pokerVars.winning);
+              console.log("Next round winning rate is: " + highestRate);
 
-              // quit after the rounds won hit the cap
-              // and the next round's highest predicted winning rate 
-              // is below the calculated minimum rate
-              if (pokerVars.winning >= winningCap && highestRate < minimumRate) {
+              var rateMultiplier = 0;
+              if (pokerVars.winningChips >= winningCaps.chips) {
+                // multiplier is calculated from how many chips are won that have passed the cap
+                rateMultiplier = (pokerVars.winningChips / winningCaps.chips);
+              } else if (pokerVars.winningRounds >= winningCaps.round) {
+                // multiplier is calculated from how many winning rounds have passed the cap
+                rateMultiplier = (pokerVars.winningRounds - winningCaps.round);
+              }
+
+              // the minimum winning rate is taken from the base cap modified by multiplied modifier
+              // finally, decide if the bot should stop depending on the next predicted winning rate
+              const minimumRate = winningRates.base + (winningRates.modifier * rateMultiplier);
+              if (highestRate < minimumRate) {
                 actions.merge(
                   ["click", ".prt-no"],
                   ["wait", ".prt-start"],
