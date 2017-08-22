@@ -75,7 +75,7 @@ export default {
             return;
           }
           actions.merge(
-            ["timeout", 1000],
+            ["timeout", 500],
             ["click", ".btn-use-full.index-1"],
             ["click", ".btn-usual-ok"]
           ).then(next);
@@ -90,17 +90,18 @@ export default {
           ["check", ".btn-select-group.id-" + group + ".selected", nextHandler, (next, actions) => {
             actions.merge(
               ["click", ".btn-select-group.id-" + group],
-              ["timeout", 1000]
+              ["timeout", 500]
             ).then(next);
           }],
           ["check", ".prt-deck-slider ol > li:nth-child(" + slot + ") > a.flex-active", nextHandler, (next, actions) => {
             actions.merge(
               ["click", ".prt-deck-slider ol > li:nth-child(" + slot + ")"],
-              ["timeout", 1000]
+              ["timeout", 500]
             ).then(next);
           }]
         ).then(next);
       }, nextHandler],
+      ["timeout", 500],
       ["click", ".se-quest-start"],
       ["merge", waitBattleScreen]
     );
@@ -124,7 +125,7 @@ export default {
       const selectorNext = index + 1 < selector.length ? selector[index + 1] : supportScreenSelector;
       actions.check(selectorNext).then(() => {
         actions.merge(
-          ["timeout", 1000],
+          ["timeout", 500],
           checker
         ).then(() => {
           index++;
@@ -134,7 +135,7 @@ export default {
         actions.check(selectorCurrent).then(() => {
           actions.merge(
             ["click", selectorCurrent],
-            ["timeout", 1000],
+            ["timeout", 500],
             checker
           ).then(next);
         }, next);

@@ -2,6 +2,7 @@ import _ from "lodash";
 import shortid from "shortid";
 import ViramateApi from "./background/ViramateApi";
 import LiveReload from "./background/LiveReload";
+import PortMessaging from "./lib/messaging/PortMessaging";
 import io from "socket.io-client";
 
 const log = (message) => {
@@ -15,6 +16,7 @@ if (process.env.NODE_ENV !== "production") {
 
 var pagePort;
 var running = false;
+const messaging = new PortMessaging();
 const viramateApi = new ViramateApi(document.querySelector("#viramate_api"));
 const serverUrl = window.serverUrl || "http://localhost:49544/";
 const handleRequest = (request, sender, sendResponse, callbacks) => {
@@ -40,7 +42,7 @@ const handleRequest = (request, sender, sendResponse, callbacks) => {
 };
 
 const ports = [];
-const pendingMessages = {};
+const pendingActions = [];
 const broadcast = (action, payload) => {
   const id = shortid.generate();
   _.each(ports, (port) => {
@@ -52,7 +54,7 @@ const broadcast = (action, payload) => {
 };
 
 var subscriber;
-var startOnConnect = true;
+var startOnConnect = false;
 const socket = io(serverUrl);
 const startSocket = () => {
   if (running) {
@@ -90,50 +92,52 @@ socket.on("disconnect", () => {
     socket.connect();
   }, 5000);
 });
-socket.on("stop", stopSocket);
-socket.on("action", (message) => {
-  subscriber ? subscriber(message) : log(message);
+socket.on("stop", () => {
+  running ? stopSocket() : _.noop();
 });
+socket.on("action", (message) => {
+  subscriber ? subscriber(message) : pendingActions.push(message);
+});
+
+const startPort = (port) => {
+  ports.push(port);
+};
+const stopPort = (port) => {
+  const portIndex = ports.indexOf(port);
+  if (portIndex >= 0) {
+    ports.splice(ports.indexOf(port), 1);
+  }
+};
+const setupPort = (port, listeners) => {
+  port.onMessage.addListener(listeners.onMessage);
+  port.onDisconnect.addListener(listeners.onDisconnect);
+};
 
 const startAutopilot = () => {
   if (running) return;
 
-  const sendMessage = (action, payload, timeout) => {
-    return new Promise((resolve, reject) => {
-      const id = shortid.generate();
-      const message = {
-        id, action, payload, timeout,
-        type: "request"
-      };
-      pendingMessages[id] = {message, resolve, reject};
-      pagePort.postMessage(message);
-
-      setTimeout(() => {
-        delete pendingMessages[id];
-      }, timeout);
-    });
-  };
-
   subscriber = (message) => {
     const {action, id, payload, timeout} = message;
+    const emitSocket = {
+      success(payload) {
+        socket.emit("action", {id, action, payload, type: "response"});
+      },
+      fail(payload) {
+        socket.emit("action.fail", {id, action, payload, type: "response"});
+      }
+    };
 
     if (action == "viramate") {
-      viramateApi.sendApiRequest(payload, id).then((result) => {
-        socket.emit("action", {id, action, payload: result, type: "response"});
-      }, (result) => {
-        socket.emit("action.fail", {id, action, payload: result, type: "response"});
-      });
-      return;
+      viramateApi.sendApiRequest(payload, id).then(emitSocket.success, emitSocket.fail);
+    } else {
+      messaging.sendRequest(action, payload, timeout).then(emitSocket.success, emitSocket.fail);
     }
-
-    sendMessage(action, payload, timeout).then((response) => {
-      const {action, payload} = response;
-      socket.emit("action", {id, action, payload, type: "response"});
-    }, (response) => {
-      const {action, payload} = response;
-      socket.emit("action.fail", {id, action, payload, type: "response"});
-    });
   };
+
+  while (pendingActions.length > 0) {
+    const message = pendingActions.pop();
+    subscriber(message);
+  }
 
   startSocket();
 };
@@ -143,50 +147,42 @@ const stopAutopilot = () => {
   stopSocket();
 };
 
+const setupMessaging = (messaging, port) => {
+  messaging.setup(port, setupPort);
+  messaging.onRequest = (msg) => {
+    handleRequest(msg, port.sender, (response, success) => {
+      messaging.sendResponse(msg.id, msg.action, response, success);
+    }, {
+      onStart: startAutopilot,
+      onStop: stopAutopilot,
+      onLoad: () => loadAutopilot(port, messaging)
+    });
+  };
+  return messaging;
+};
+
 const loadAutopilot = (port) => {
-  if (pagePort) {
-    log("Disconnecting previous page port");
-    pagePort.disconnect();
+  if (pagePort) { 
+    messaging.changePort(port, setupPort, (port) => {
+      port.disconnect();
+      // have to call stopPort again because onDisconnect event isn't emitted
+      stopPort(port);
+    }, (port, listeners) => {
+      port.onMessage.removeListener(listeners.onMessage);
+      port.onDisconnect.removeListener(listeners.onDisconnect);
+    });
+  } else {
+    setupMessaging(messaging, port);
   }
   pagePort = port;
-  _.each(pendingMessages, (pending) => {
-    port.sendMessage(pending.message);
-  });
 };
 
 chrome.runtime.onConnect.addListener((port) => {
-  ports.push(port);
-  const sender = port.sender;
-  port.onMessage.addListener((msg) => {
-    const {id, action, type} = msg;
-    if (type == "request") {
-      handleRequest(msg, sender, (response, success) => {
-        port.postMessage({
-          id, action,
-          type: "response",
-          payload: response,
-          success: success !== false
-        });
-      }, {
-        onStart: startAutopilot,
-        onStop: stopAutopilot,
-        onLoad: () => loadAutopilot(port)
-      });
-    } else {
-      const pending = pendingMessages[id];
-      if (!pending) return;
-      const success = msg.success;
-      if (success) {
-        pending.resolve(msg);
-      } else {
-        pending.reject(msg);
-      }
-      delete pendingMessages[id];
-    }
-  });
+  setupMessaging(new PortMessaging(), port);
   port.onDisconnect.addListener(() => {
-    ports.splice(ports.indexOf(port), 1);
+    stopPort(port);
   });
+  startPort(port);
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

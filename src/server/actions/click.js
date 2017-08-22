@@ -20,7 +20,7 @@ export function doClick(self, selector, path="click", timeout) {
         return;
       }
       executeClick(self, data, path).then(resolve, reject);
-    });
+    }, reject);
   });
 }
 

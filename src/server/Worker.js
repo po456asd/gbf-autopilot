@@ -1,4 +1,5 @@
 import _ from "lodash";
+import StackTrace from "stacktrace-js";
 import actionClick from "./actions/click";
 import actionSupport from "./actions/support";
 import actionBattle from "./actions/battle";
@@ -78,7 +79,10 @@ export default class Worker {
       return this.sendAction.apply(this, [name].concat(args));
     });
     if (this.config.Debug.LogAction) {
-      console.log("Action: " + name + "(" + args.map((val) => JSON.stringify(val)).join(", ") + ")");
+      console.log(
+        "Action: " + name + 
+        "(" + args.map((val) => JSON.stringify(val)).join(", ") + ")"
+      );
     }
     return handler.apply(this, args);
   }

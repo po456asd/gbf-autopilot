@@ -62,43 +62,55 @@ export function translateElements(elements) {
 }
 
 export function translateElement(el) {
-  // is a selector
-  if (_.isString(el)) {
-    el = query(el);
-  } else if (!(el instanceof NodeList)) {
-    el = [el];
-  }
-  var result = translateElements(el);
-  if (!result) {
-    return null;
-  }
+  return new Promise((resolve, reject) => {
+    // is a selector
+    if (_.isString(el)) {
+      el = query(el);
+    } else if (!(el instanceof NodeList)) {
+      el = [el];
+    }
+    var result = translateElements(el);
+    if (!result) {
+      reject();
+      return;
+    }
 
-  const rect = result.rects[0];
-  if (!rect) {
-    return null;
-  }
+    const rect = result.rects[0];
+    if (!rect) {
+      reject();
+      return;
+    }
 
-  const windowRect = result.window;
-  const scale = result.scale;
+    const windowRect = result.window;
+    const scale = result.scale;
 
-  var footerHeight = 0;
-  const footer = query(".cnt-pc-global-footer")[0];
-  if (footer) {
-    footerHeight = footer.getBoundingClientRect().height * scale;
-  }
+    var footerHeight = 0;
+    const footer = query(".cnt-pc-global-footer")[0];
+    if (footer) {
+      footerHeight = footer.getBoundingClientRect().height * scale;
+    }
 
-  if (rect.y > windowRect.height - footerHeight || rect.y < 0) {
-    const cnt = query("#mobage-game-container")[0];
-    const before = cnt.parentNode.scrollTop;
-    cnt.parentNode.scrollTop += rect.y;
-    const after = cnt.parentNode.scrollTop;
-    rect.y -= after - before;
-  }
+    var waitForScroll = false;
+    if (rect.y > windowRect.height - footerHeight || rect.y < 0) {
+      const cnt = query("#mobage-game-container")[0];
+      const before = cnt.parentNode.scrollTop;
+      cnt.parentNode.scrollTop += rect.y;
+      const after = cnt.parentNode.scrollTop;
+      rect.y -= after - before;
+      waitForScroll = true;
+    }
 
-  result = _.assign(result, rect);
-  delete result.rects;
+    result = _.assign(result, rect);
+    delete result.rects;
 
-  return result;
+    if (waitForScroll) {
+      setTimeout(() => {
+        resolve(result);
+      }, 150);
+    } else {
+      resolve(result);
+    }
+  });
 }
 
 function payloadToOptions(payload) {
@@ -148,16 +160,15 @@ export default {
     const cb = elementCallback(selector, done);
 
     function findElement() {
-      const result = translateElement(query(selector));
-      if (!result) {
+      translateElement(query(selector)).then((result) => {
+        cb(result);
+      }, () => {
         if (retryOnNull) {
           retry(findElement, 150);
         } else {
           fail(selector);
         }
-      } else {
-        cb(result);
-      }
+      });
     }
     findElement();
   },

@@ -94,8 +94,9 @@ export default class Server {
   }
 
   onSocketStart(socket) {
-    if (!this.running) this.running = true;
+    if (this.running) return;
 
+    console.log("Socket '" + socket.id + "' started");
     const errorHandler = (err) => {
       console.error(err);
       socket.disconnect();
@@ -120,20 +121,22 @@ export default class Server {
         actions: {}
       };
       this.makeRequest("start").then(() => {
+        this.running = true;
         worker.start(scenario);
       }, errorHandler);
     }, errorHandler);
   }
 
-  onSocketStop(socket) {
-    this.stopSocket(socket.id);
+  onSocketStop() {
+    this.stop();
   }
 
-  onAction(socket, {id, payload}, callback) {
-    const action = this.getAction(socket, id);
+  onAction(socket, data, callback) {
+    const action = this.getAction(socket, data.id);
     // silently fail
     if (!action) return;
-    callback(action, payload);
+    console.log("Socket: RECV", data, callback.name);
+    callback(action, data.payload);
     clearTimeout(action.timer);
   }
 
@@ -150,16 +153,8 @@ export default class Server {
   }
 
   onDisconnect(socket) {
-    if (this.running) this.running = false;
-
     console.log(`Client '${socket.id}' disconnected!`);
-    this.makeRequest("stop").then(() => {
-      if (this.sockets[socket.id]) {
-        this.stopSocket(socket.id);
-      }
-    }, (err) => {
-      console.error(err);
-    });
+    this.makeRequest("stop").then(::this.stop, ::console.error);
   }
 
   sendAction(realSocket, actionName, payload, timeout) {
@@ -199,13 +194,14 @@ export default class Server {
         }, timeout) : 0
       };
 
-      const data = packer(actionName, payload);
-      data.id = id;
-      data.timeout = timeout;
-      data.type = "request";
+      const data = {
+        id, payload, timeout,
+        action: actionName, 
+        type: "request"
+      };
 
       if (this.config.Debug.LogSocket) {
-        console.log(`Socket: ${expression}`);
+        console.log("Socket: SEND", data);
       }
       realSocket.emit("action", data);
     });
@@ -213,6 +209,7 @@ export default class Server {
 
   stopSocket(id) {
     if (!this.sockets[id]) return;
+    console.log("Stopping socket '" + id + "'");
     const {socket, worker, timer, actions} = this.sockets[id];
     delete this.sockets[id];
     forEach(actions, ({timer}) => {
@@ -233,7 +230,6 @@ export default class Server {
 
   stop() {
     if (!this.running) return;
-    console.log("Stopping...");
     forEach(this.sockets, (socket, id) => {
       this.stopSocket(id);
     });

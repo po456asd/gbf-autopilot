@@ -21,6 +21,9 @@ function parseCard(card) {
 function initPokerVars() {
   pokerVars.winningChips = 0;
   pokerVars.winningRounds = 0;
+}
+
+function resetAvailableCards() {
   _.range(2, 15).forEach((rank) => {
     pokerVars.availableCards[rank] = 4;
   });
@@ -105,8 +108,11 @@ const winningHands = {
   },
   fullHouse(cards) {
     const matches = findMatchingCards(cards, true);
-    const numberOfRanks = _.keys(matches.ranks).length;
-    if (numberOfRanks != 2) return false;
+    const numberOfRanks = _.keys(matches.rank).length;
+    const numberOfSuits = _.keys(matches.suit).length;
+    console.log("Number of ranks: " + numberOfRanks);
+    console.log("Number of suits: " + numberOfSuits);
+    if (numberOfRanks != 2 || numberOfSuits != 2) return false;
     return [0, 1, 2, 3, 4];
   },
   flush(cards) {
@@ -272,6 +278,7 @@ const cardRect = {
 };
 
 function keepSuggestion(cards) {
+  resetAvailableCards();
   var scenario = [
     ["wait", ".prt-ok:not(.disable)"]
   ];
@@ -305,6 +312,10 @@ function keepSuggestion(cards) {
     scenario.push(["run", (done, fail) => {
       clickCard(index, done, fail);
     }]);
+    const rank = cards[index].rank;
+    if (pokerVars.availableCards[rank]) {
+      pokerVars.availableCards[rank]--;
+    }
   });
   scenario = scenario.concat([
     ["click", ".prt-ok:not(.disable)"],
@@ -407,6 +418,7 @@ export default {
               const highestRate = nextPredict.high > nextPredict.low ?
                 nextPredict.high : nextPredict.low;
 
+              const maximumRate = 1.0;
               var minimumRate = 0;
               if (pokerVars.winningChips >= winningCaps.chips) {
                 // multiplier is calculated from how many chips are won that have passed the cap
@@ -418,7 +430,8 @@ export default {
                 minimumRate = winningRates.base + (winningRates.modifier * rateMultiplier);
               }
 
-              const shouldStop = highestRate < minimumRate;
+              minimumRate = minimumRate > maximumRate ? maximumRate : minimumRate;
+              const shouldStop = highestRate < minimumRate ;
               console.log("-------- DOUBLE UP RESULT --------");
               console.log("Chips won: " + pokerVars.winningChips);
               console.log("Rounds won: " + pokerVars.winningRounds);

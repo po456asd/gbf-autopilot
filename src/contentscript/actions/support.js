@@ -48,6 +48,6 @@ export default {
     }
 
     console.log("Selected support: '" + selectedName + "' with score " + max, element);
-    done(translateElement(element));
+    translateElement(element).then(done, fail);
   }
 };

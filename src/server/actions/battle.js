@@ -22,8 +22,8 @@ const closeScenario = [
   "check", selectors.next, (next, command, {selector}) => {
     command.merge(
       ["click", selector],
-      ["wait", selectors.next + ",.btn-control"],
       ["timeout", 1500],
+      ["wait", selectors.next + ",.btn-control"],
       closeScenario
     ).then(next);
   }, nextHandler
