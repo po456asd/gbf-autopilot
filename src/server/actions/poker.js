@@ -7,7 +7,7 @@ const pokerVars = {
   availableCards: {},
 };
 
-function parseCard(card) {
+export function parseCard(card) {
   const [suit, rank] = card.split("_");
   const result = {
     suit: Number(suit),
@@ -16,6 +16,10 @@ function parseCard(card) {
   // in case of Ace, put it higher than others
   if (result.rank == 1) result.rank = 14;
   return result;
+}
+
+export function parseCards(cards) {
+  return _.map(cards, parseCard);
 }
 
 function initPokerVars() {
@@ -82,15 +86,15 @@ function someOfAKind(cards, min, matchJoker) {
   return result;
 }
 
-const winningHands = {
+export const winningHands = {
   royalStraightFlush(cards) {
-    if (this.straightFlush(cards) === false) return false;
+    if (!this.straightFlush(cards)) return false;
     var result = [0, 1, 2, 3, 4];
     _.each(cards, (card) => {
-      if (card.rank < 10) {
+      if (card.rank < 10 || card.rank > 14) {
         result = false;
         return false;
-      }
+      } 
     });
     return result;
   },
@@ -109,10 +113,7 @@ const winningHands = {
   fullHouse(cards) {
     const matches = findMatchingCards(cards, true);
     const numberOfRanks = _.keys(matches.rank).length;
-    const numberOfSuits = _.keys(matches.suit).length;
-    console.log("Number of ranks: " + numberOfRanks);
-    console.log("Number of suits: " + numberOfSuits);
-    if (numberOfRanks != 2 || numberOfSuits != 2) return false;
+    if (numberOfRanks != 2) return false;
     return [0, 1, 2, 3, 4];
   },
   flush(cards) {
@@ -144,7 +145,7 @@ const winningHands = {
       }
       if (wasJoker) {
         wasJoker = false;
-      } else if (rank - lastRank != -1) {
+      } else if (rank - lastRank != 1) {
         result = false;
         return false;
       }
@@ -265,10 +266,6 @@ const checkers = [
   checkJoker
 ];
 
-function parseCards(cards) {
-  return _.map(cards, parseCard);
-}
-
 const cardRect = {
   left: 170, // 201
   top: 294, // 294
@@ -363,12 +360,12 @@ export default {
         this.actions["merge.array"](scenario).then(resolve, reject);
       };
 
-      this.sendAction("poker", "deal").then(({payload}) => {
+      this.sendAction("poker", "deal").then((payload) => {
         if (!payload.card_list) {
-          this.sendAction("poker", "initialize").then(({payload}) => {
+          this.sendAction("poker", "initialize").then((payload) => {
             console.log("From initialize model");
             processCards(payload);
-          });
+          }, reject);
         } else {
           console.log("From deal model");
           processCards(payload);
@@ -390,7 +387,7 @@ export default {
       modifier: Number(this.config.Poker.WinningRateModifier)
     };
     const doubleUpLoop = (resolve, reject) => {
-      this.sendAction("poker", "doubleStart").then(({payload}) => {
+      this.sendAction("poker", "doubleStart").then((payload) => {
         const prediction = predictDouble(payload.card_first);
         var select = "high";
         if (prediction.high < prediction.low) {
@@ -407,7 +404,7 @@ export default {
           ["click", ".prt-double-select[select='" + select + "']"],
           ["wait", ".prt-start,.prt-yes"],
           ["check", ".prt-yes", (next, actions, {selector}) => {
-            this.sendAction("poker", "doubleResult").then(({payload}) => {
+            this.sendAction("poker", "doubleResult").then((payload) => {
               if (payload.result == "win") {
                 pokerVars.winningRounds++;
                 pokerVars.winningChips = payload.pay_medal;

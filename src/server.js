@@ -135,7 +135,9 @@ export default class Server {
     const action = this.getAction(socket, data.id);
     // silently fail
     if (!action) return;
-    console.log("Socket: RECV", data, callback.name);
+    if (this.config.Debug.LogSocket) {
+      console.log("Socket: RECV", data);
+    }
     callback(action, data.payload);
     clearTimeout(action.timer);
   }
