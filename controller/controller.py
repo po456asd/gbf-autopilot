@@ -23,7 +23,9 @@ COMMAND_PORT = int(config['Controller']['CommandPort'])
 DEFAULT_TWEEN = getattr(pyautogui, config['Controller']['InputTween'])
 
 log = logging.getLogger('werkzeug')
-log.setLevel(getattr(logging, config['Log']['Level']))
+logLevel = config['Log']['Level']
+if logLevel != 'DEBUG':
+    log.setLevel(getattr(logging, logLevel))
 
 commandStarted = False
 window = Window(WINDOW_TITLE, DEFAULT_TWEEN)
