@@ -1,6 +1,7 @@
 import actionElement from "./element";
 import actionLocation from "./location";
 import actionSupport from "./support";
+import actionBattle from "./battle";
 import actionPoker from "./poker";
 import packer from "~/lib/messaging/packer";
 import assign from "lodash/assign";
@@ -11,19 +12,13 @@ const respond = (result) => {
   chrome.runtime.sendMessage(result, noop);
 };
 export const actions = assign({
-  // doesn't work
-  /*
-  "turn": function() {
-    return packer("turn", window.stage ? window.stage.gGameStatus.turn : 0);
-  },
-  */
   "hello": function() {
     return packer("hello");
   },
   "error": function(name) {
     return packer("error", `Action ${name} not found!`);
   }
-}, actionElement, actionLocation, actionSupport, actionPoker);
+}, actionElement, actionLocation, actionSupport, actionBattle, actionPoker);
 
 export function sendAction(action, args) {
   const handler = actions[action];

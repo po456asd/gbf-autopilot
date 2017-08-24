@@ -9,13 +9,18 @@ const readConfig = () => {
   return config;
 };
 
+const resetScenarios = () => {
+  const scenariosDir = resolve(__dirname, "./scenarios");
+  Object.keys(require.cache).filter((path) => {
+    return path.indexOf(scenariosDir) != -1;
+  }).forEach((path) => {
+    delete require.cache[path];
+  });
+};
+
 const readScenario = (scenarioName) => {
+  resetScenarios();
   const modulePath = "./scenarios/" + scenarioName;
-  const resolved = require.resolve(modulePath);
-  // make sure to invalidate cached scenario
-  if (require.cache[resolved]) {
-    delete require.cache[resolved];
-  }
   const scenario = require(modulePath);
   return scenario;
 };

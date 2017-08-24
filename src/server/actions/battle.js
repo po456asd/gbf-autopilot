@@ -1,5 +1,5 @@
 import _ from "lodash";
-import battleLogic from "./battle/logic";
+import battleState from "./battle/state";
 import battleBackup from "./battle/backup";
 
 const selectors = {
@@ -223,8 +223,18 @@ export default {
   "battle.enemy": function(number) {
     return this.actions.click(".btn-targeting.enemy-" + number);
   },
+  "battle.logic": function(callback) {
+    return new Promise((resolve, reject) => {
+      this.callAction("battle.state").then((state) => {
+        this.actions.merge(
+          ["merge", callback(state)],
+          ["battle.logic", callback]
+        ).then(resolve, reject);
+      }, reject);
+    });
+  },
 
   // Extras
-  "battle.logic": battleLogic,
+  "battle.state": battleState,
   "battle.backup": battleBackup
 };
