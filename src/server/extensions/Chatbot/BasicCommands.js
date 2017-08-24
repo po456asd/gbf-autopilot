@@ -4,6 +4,7 @@ export default class BasicCommands {
   setup(chatbot, server) {
     this.chatbot = chatbot;
     this.server = server;
+    this.config = server.config;
     this.logger = server.logger;
     this.defaultErrorHandler = ::server.defaultErrorHandler;
     this.subscribers = new Set();
@@ -30,7 +31,7 @@ export default class BasicCommands {
   }
 
   treasureHunter(reply, code) {
-    const config = this.getConfig();
+    const config = this.config;
     if (!this.server.running) {
       return reply.text("Autopilot is not running");
     }
