@@ -62,7 +62,7 @@ export default class Server {
   }
   
   defaultErrorHandler(err) {
-    this.logger.error(err instanceof Error ? err.message : err.toString());
+    this.logger.error(err instanceof Error ? err : err.toString());
   }
 
   setupExpress(app) {

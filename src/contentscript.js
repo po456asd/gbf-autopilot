@@ -31,6 +31,7 @@ const handleRequest = (request, sendResponse) => {
     sendResponse({id, type: "response", action, payload, success: true});
   };
   const fail = (payload) => {
+    payload = payload instanceof Error ? payload.message : payload;
     sendResponse({id, type: "response", action, payload, success: false});
   };
   const retry = (callback, timeout) => {

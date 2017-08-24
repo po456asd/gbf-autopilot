@@ -11,7 +11,7 @@ export default {
     done(Number(el.className.substr(-1)));
   },
   "battle.state": function(arg, done, fail) {
-    const els = document.querySelectorAll(".prt-command-chara[pos] .lis-ability");
+    const els = document.querySelectorAll(".prt-command-chara[pos]");
     if (els.length <= 0) {
       fail(new Error("Skill elements not found!"));
     }
@@ -26,15 +26,14 @@ export default {
       summons: {}
     };
 
-    forEach(els, (el) => {
-      el = el.children[0];
+    const handleSkill = (root, el) => {
       const id = Number(el.getAttribute("ability-id"));
       if (!id) return;
 
       const matches = el.className.match(/-(\d)-(\d)$/);
       const chara = Number(matches[1]);
       const skill = Number(matches[2]);
-      const charaState = state[chara] || {};
+      const charaState = state.party[chara] || {};
       
       const div = document.createElement("div");
       div.innerHTML = el.getAttribute("text-data");
@@ -54,11 +53,17 @@ export default {
         type: el.getAttribute("type"),
         name: el.getAttribute("ability-name"),
         description, cooldown, effect,
-        available: cooldown.current == 0,
+        available: root.className.indexOf("ability-disable") == -1 && cooldown.current == 0,
       };
 
       charaState[skill] = skillState;
       state.party[chara] = charaState;
+    };
+
+    forEach(els, (root) => {
+      forEach(root.querySelectorAll(".lis-ability > div:first-child"), (el) => {
+        handleSkill(root, el);
+      });
     });
 
     forEach(summonEls, (el) => {
