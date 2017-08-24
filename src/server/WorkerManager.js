@@ -5,7 +5,6 @@ export default class WorkerManager {
   }
 
   stop() {
-    this.server.stopSocket(this.socket.id);
-    return this;
+    return this.server.stopSocket(this.socket.id);
   }
 }

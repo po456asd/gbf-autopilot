@@ -149,9 +149,13 @@ export default class Worker {
   }
 
   stop() {
-    if (!this.running) return;
-    this.running = false;
-    this.manager.stop();
-    return this;
+    return new Promise((resolve, reject) => {
+      if (!this.running) {
+        reject(new Error("Worker is not running"));
+        return;
+      }
+      this.running = false;
+      this.manager.stop().then(resolve, reject);
+    });
   }
 }

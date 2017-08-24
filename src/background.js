@@ -56,7 +56,7 @@ const broadcast = (action, payload) => {
 var subscriber;
 var startOnConnect = false;
 const socket = io(serverUrl);
-const startSocket = () => {
+const startSocket = (doNotEmit) => {
   if (running) {
     throw new Error("Socket already running!");
   }
@@ -66,17 +66,21 @@ const startSocket = () => {
     startOnConnect = true;
     socket.connect();
   } else {
-    socket.emit("start");
+    if (!doNotEmit) {
+      socket.emit("start");
+    }
   }
   log("Started socket");
 };
-const stopSocket = () => {
+const stopSocket = (doNotEmit) => {
   if (!running) {
     throw new Error("Socket not running!");
   }
   running = false;
   broadcast("STOP");
-  socket.emit("stop");
+  if (!doNotEmit) {
+    socket.emit("stop");
+  }
   log("Stopped socket");
 };
 socket.on("connect", () => {
@@ -92,8 +96,11 @@ socket.on("disconnect", () => {
     socket.connect();
   }, 5000);
 });
+socket.on("start", () => {
+  !running ? startAutopilot(true) : _.noop();
+});
 socket.on("stop", () => {
-  running ? stopSocket() : _.noop();
+  running ? stopAutopilot(true) : _.noop();
 });
 socket.on("action", (message) => {
   subscriber ? subscriber(message) : pendingActions.push(message);
@@ -113,7 +120,7 @@ const setupPort = (port, listeners) => {
   port.onDisconnect.addListener(listeners.onDisconnect);
 };
 
-const startAutopilot = () => {
+const startAutopilot = (doNotEmit) => {
   if (running) return;
 
   subscriber = (message) => {
@@ -139,12 +146,12 @@ const startAutopilot = () => {
     subscriber(message);
   }
 
-  startSocket();
+  startSocket(doNotEmit);
 };
 
-const stopAutopilot = () => {
+const stopAutopilot = (doNotEmit) => {
   if (!running) return;
-  stopSocket();
+  stopSocket(doNotEmit);
 };
 
 const setupMessaging = (messaging, port) => {

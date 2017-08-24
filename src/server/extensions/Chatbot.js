@@ -2,7 +2,11 @@ import axios from "axios";
 import io from "socket.io-client";
 import BaseExtension from "./BaseExtension";
 import forEach from "lodash/forEach";
-import commands from "./Chatbot/commands";
+import BasicCommands from "./Chatbot/BasicCommands";
+
+const plugins = [
+  new BasicCommands()
+];
 
 export default class Chatbot extends BaseExtension {
   constructor() {
@@ -10,9 +14,10 @@ export default class Chatbot extends BaseExtension {
     this.enabled = false;
     this.prefix = "/";
     this.commands = {};
-    this.subscribers = new Set();
-    forEach(commands, (command, name) => {
-      this.commands[name] = command.bind(this);
+    forEach(plugins, (plugin) => {
+      forEach(plugin.getCommands(), (command, name) => {
+        this.commands[name] = command;
+      });
     });
   }
 
@@ -42,7 +47,10 @@ export default class Chatbot extends BaseExtension {
     this.socket.on("connect", ::this.onChatConnect);
     this.socket.on("events", ::this.onChatEvents);
 
-    this.users = config.Chatbot.UserId.split(/[,\s]/);
+    this.users = new Set(config.Chatbot.UserId.split(/[,\s]/));
+    forEach(plugins, (plugin) => {
+      plugin.setup(this, server);
+    });
   }
 
   onChatConnect() {}
@@ -88,9 +96,13 @@ export default class Chatbot extends BaseExtension {
       const pushMessage = () => {
         const user = users.pop();
         if (!user) resolve();
-        this.http.post("/push", {to: user, message}).then(pushMessage, reject);
+        this.pushToUser(user, message).then(pushMessage, reject);
       };
       pushMessage();
     });
+  }
+
+  pushToUser(user, message) {
+    return this.http.post("/push", {to: user, message});
   }
 }

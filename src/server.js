@@ -6,6 +6,7 @@ import Express from "express";
 import bodyParser from "body-parser";
 import forEach from "lodash/forEach";
 import assign from "lodash/assign";
+import noop from "lodash/noop";
 
 import Worker from "./server/Worker";
 import WorkerManager from "./server/WorkerManager";
@@ -41,9 +42,11 @@ export default class Server {
       "action.fail": ::this.onActionFail,
       "disconnect": ::this.onDisconnect
     };
+    this.subscribers = [];
     this.sockets = {};
 
     this.running = false;
+    this.lastConnectedSocket = null;
     this.app = Express();
     this.server = http.Server(this.app);
     this.io = SocketIO(this.server);
@@ -57,12 +60,30 @@ export default class Server {
       extension.onSetup(this);
     });
   }
+  
+  defaultErrorHandler(err) {
+    this.logger.error(err instanceof Error ? err.message : err.toString());
+  }
 
   setupExpress(app) {
+    const defaultResponse = (res, promise) => {
+      promise.then(() => {
+        res.end("OK");
+      }, (err) => {
+        this.defaultErrorHandler(err);
+        res.status(500);
+        res.end(err.toString());
+      });
+    };
+
     app.use(bodyParser.text());
+    app.post("/start", (req, res) => {
+      this.logger.debug("Got start request from webhook");
+      defaultResponse(res, this.start());
+    });
     app.post("/stop", (req, res) => {
-      this.stop();
-      res.end();
+      this.logger.debug("Got stop request from webhook");
+      defaultResponse(res, this.stop());
     });
   }
 
@@ -87,6 +108,7 @@ export default class Server {
 
   onConnect(socket) {
     this.logger.debug(`Client '${socket.id}' connected!`);
+    this.lastConnectedSocket = socket;
   }
 
   getAction(socket, id) {
@@ -96,12 +118,7 @@ export default class Server {
 
   onSocketStart(socket) {
     if (this.running) return;
-
     this.logger.debug("Socket '" + socket.id + "' started");
-    const errorHandler = (err) => {
-      this.logger.error(err);
-      socket.disconnect();
-    };
 
     this.configHandler().then(({config, scenario}) => {
       this.refreshConfig(config);
@@ -111,25 +128,31 @@ export default class Server {
       const worker = new Worker(this, config, (action, payload, timeout) => {
         return this.sendAction(socket, action, payload, timeout);
       }, manager);
+      const errorHandler = (err) => {
+        this.defaultErrorHandler(err);
+        worker.stop().then(noop, ::this.defaultErrorHandler);
+      };
       const timer = setTimeout(() => {
         if (!this.sockets[socket.id]) return;
         this.logger.debug("Bot reaches maximum time. Disconnecting...");
-        this.stopSocket(socket.id);
+        errorHandler(new Error("Bot timed out!"));
       }, botTimeout * 60 * 1000);
 
       this.sockets[socket.id] = {
-        socket, worker, timer,
+        socket, worker, timer, manager,
         actions: {}
       };
       this.makeRequest("start").then(() => {
         this.running = true;
         worker.start(scenario);
       }, errorHandler);
-    }, errorHandler);
+    }, ::this.defaultErrorHandler);
   }
 
-  onSocketStop() {
-    this.stop();
+  onSocketStop(socket) {
+    if (!this.running) return;
+    this.logger.debug("Got stop request from socket '" + socket.id + "'");
+    this.stop().then(noop, ::this.defaultErrorHandler);
   }
 
   onAction(socket, data, callback) {
@@ -157,9 +180,9 @@ export default class Server {
 
   onDisconnect(socket) {
     this.logger.debug(`Client '${socket.id}' disconnected!`);
-    this.makeRequest("stop").then(::this.stop, (err) => {
-      this.logger.error(err);
-    });
+    this.makeRequest("stop").then(() => {
+      this.stop().then(noop, ::this.defaultErrorHandler);
+    }, ::this.defaultErrorHandler);
   }
 
   sendAction(realSocket, actionName, payload, timeout) {
@@ -193,7 +216,10 @@ export default class Server {
         },
         timer: timeout > 0 ? setTimeout(() => {
           if (!resolved) {
-            reject(new Error(`Action ${expression} timed out!`));
+            this.stopSocket(id).then(() => {
+              reject(new Error(`Action ${expression} timed out!`));
+            }, reject);
+            return;
           }
           done();
         }, timeout) : 0
@@ -213,17 +239,20 @@ export default class Server {
   }
 
   stopSocket(id) {
-    if (!this.sockets[id]) return;
-    this.logger.debug("Stopping socket '" + id + "'");
-    const {socket, worker, timer, actions} = this.sockets[id];
-    delete this.sockets[id];
-    forEach(actions, ({timer}) => {
+    return new Promise((resolve, reject) => {
+      if (!this.sockets[id]) {
+        reject(new Error("Socket not found!"));
+      }
+      this.logger.debug("Stopping socket '" + id + "'");
+      const {socket, timer, actions} = this.sockets[id];
+      delete this.sockets[id];
+      forEach(actions, (action) => {
+        clearTimeout(action.timer);
+      });
       clearTimeout(timer);
+      socket.emit("stop");
+      setTimeout(resolve, 1);
     });
-    clearTimeout(timer);
-    socket.emit("stop");
-    worker.stop();
-    return this;
   }
 
   listen() {
@@ -233,13 +262,48 @@ export default class Server {
     return this;
   }
 
-  stop() {
-    if (!this.running) return;
-    forEach(this.sockets, (socket, id) => {
-      this.stopSocket(id);
+  start() {
+    return new Promise((resolve, reject) => {
+      if (this.running) {
+        reject(new Error("Autopilot is already running"));
+        return;
+      }
+      if (!this.lastConnectedSocket || !this.lastConnectedSocket.connected) {
+        reject(new Error("No connected sockets"));
+        return;
+      }
+      this.lastConnectedSocket.emit("start");
+      this.onSocketStart(this.lastConnectedSocket);
+      resolve();
     });
-    this.running = false;
-    this.sockets = {};
-    return this;
+  }
+
+  stop() {
+    return new Promise((resolve, reject) => {
+      if (!this.running) {
+        reject(new Error("Autopilot is not running"));
+        return;
+      }
+      const handleSocket = (cb) => {
+        const socketId = Object.keys(this.sockets).pop();
+        if (!socketId) {
+          cb();
+          return;
+        }
+
+        const socket = this.sockets[socketId];
+        socket.worker.stop().then(() => {
+          handleSocket(cb);
+        }, ::this.defaultErrorHandler);
+      };
+      handleSocket(() => {
+        this.running = false;
+        this.sockets = {};
+        forEach(this.subscribers, (subscriber) => {
+          (subscriber.onStop || noop)();
+        });
+        resolve();
+      });
+    });
   }
 }
