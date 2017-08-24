@@ -1,3 +1,4 @@
+import _ from "lodash";
 import axios from "axios";
 import io from "socket.io-client";
 import BaseExtension from "./BaseExtension";
@@ -92,11 +93,11 @@ export default class Chatbot extends BaseExtension {
 
   pushToUsers(message) {
     return new Promise((resolve, reject) => {
-      const users = this.users.slice();
+      const users = this.users.values();
       const pushMessage = () => {
-        const user = users.pop();
-        if (!user) resolve();
-        this.pushToUser(user, message).then(pushMessage, reject);
+        const user = users.next();
+        if (user.done) resolve();
+        this.pushToUser(user.value, message).then(pushMessage, reject);
       };
       pushMessage();
     });

@@ -7,6 +7,15 @@ export default class BasicCommands {
     this.logger = server.logger;
     this.defaultErrorHandler = ::server.defaultErrorHandler;
     this.subscribers = new Set();
+
+    server.subscribers.push({
+      onStop: () => {
+        chatbot.pushToUsers({
+          type: "text",
+          text: "Autopilot stopped."
+        });
+      }
+    });
   }
 
   getCommands() {
@@ -85,11 +94,7 @@ export default class BasicCommands {
     } else {
       reply.text("Stopping autopilot...").then(() => {
         return this.server.stop();
-      }, this.defaultErrorHandler).then(() => {
-        return this.pushTextToUser(user, "Autopilot stopped.");
-      }, () => {
-        return this.pushTextToUser(user, "Autopilot is already stopped.");
-      }).then(noop, this.defaultErrorHandler);
+      }, this.defaultErrorHandler).then(noop, this.defaultErrorHandler);
     }
   }
 
