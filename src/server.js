@@ -7,17 +7,18 @@ import bodyParser from "body-parser";
 import forEach from "lodash/forEach";
 import assign from "lodash/assign";
 
-import packer from "~/lib/messaging/packer";
 import Worker from "./server/Worker";
 import WorkerManager from "./server/WorkerManager";
 
 import RaidQueue from "./server/extensions/RaidQueue";
 import Chatbot from "./server/extensions/Chatbot";
+import Logger from "./lib/Logger";
 
 export default class Server {
   constructor(initConfig, rootDir, configHandler, extensions) {
     this.config = initConfig;
     this.rootDir = rootDir;
+    this.logger = Logger(initConfig);
     this.configHandler = () => {
       return new Promise((resolve, reject) => {
         configHandler.apply(this).then((result) => {
@@ -85,7 +86,7 @@ export default class Server {
   }
 
   onConnect(socket) {
-    console.log(`Client '${socket.id}' connected!`);
+    this.logger.debug(`Client '${socket.id}' connected!`);
   }
 
   getAction(socket, id) {
@@ -96,9 +97,9 @@ export default class Server {
   onSocketStart(socket) {
     if (this.running) return;
 
-    console.log("Socket '" + socket.id + "' started");
+    this.logger.debug("Socket '" + socket.id + "' started");
     const errorHandler = (err) => {
-      console.error(err);
+      this.logger.error(err);
       socket.disconnect();
     };
 
@@ -112,7 +113,7 @@ export default class Server {
       }, manager);
       const timer = setTimeout(() => {
         if (!this.sockets[socket.id]) return;
-        console.log("Bot reaches maximum time. Disconnecting...");
+        this.logger.debug("Bot reaches maximum time. Disconnecting...");
         this.stopSocket(socket.id);
       }, botTimeout * 60 * 1000);
 
@@ -135,8 +136,8 @@ export default class Server {
     const action = this.getAction(socket, data.id);
     // silently fail
     if (!action) return;
-    if (this.config.Debug.LogSocket) {
-      console.log("Socket: RECV", data);
+    if (this.config.Log.DebugSocket) {
+      this.logger.debug("Socket: RECV", data);
     }
     callback(action, data.payload);
     clearTimeout(action.timer);
@@ -155,8 +156,10 @@ export default class Server {
   }
 
   onDisconnect(socket) {
-    console.log(`Client '${socket.id}' disconnected!`);
-    this.makeRequest("stop").then(::this.stop, ::console.error);
+    this.logger.debug(`Client '${socket.id}' disconnected!`);
+    this.makeRequest("stop").then(::this.stop, (err) => {
+      this.logger.error(err);
+    });
   }
 
   sendAction(realSocket, actionName, payload, timeout) {
@@ -202,8 +205,8 @@ export default class Server {
         type: "request"
       };
 
-      if (this.config.Debug.LogSocket) {
-        console.log("Socket: SEND", data);
+      if (this.config.Log.DebugSocket) {
+        this.logger.debug("Socket: SEND", data);
       }
       realSocket.emit("action", data);
     });
@@ -211,7 +214,7 @@ export default class Server {
 
   stopSocket(id) {
     if (!this.sockets[id]) return;
-    console.log("Stopping socket '" + id + "'");
+    this.logger.debug("Stopping socket '" + id + "'");
     const {socket, worker, timer, actions} = this.sockets[id];
     delete this.sockets[id];
     forEach(actions, ({timer}) => {
@@ -225,7 +228,7 @@ export default class Server {
 
   listen() {
     this.server.listen(this.port, "localhost", () => {
-      console.log("Started listening on localhost:" + this.port);
+      this.logger.info("Started listening on localhost:" + this.port);
     });
     return this;
   }

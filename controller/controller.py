@@ -10,6 +10,7 @@ import pyautogui
 import win32gui
 import win32api
 import win32con
+import logging
 import time
 import os
 
@@ -20,6 +21,9 @@ WINDOW_TITLE = config['Controller']['WindowTitle']
 DEFAULT_PORT = int(config['Controller']['ListenerPort'])
 COMMAND_PORT = int(config['Controller']['CommandPort'])
 DEFAULT_TWEEN = getattr(pyautogui, config['Controller']['InputTween'])
+
+log = logging.getLogger('werkzeug')
+log.setLevel(getattr(logging, config['Log']['Level']))
 
 commandStarted = False
 window = Window(WINDOW_TITLE, DEFAULT_TWEEN)

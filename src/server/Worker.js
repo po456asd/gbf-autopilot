@@ -56,6 +56,7 @@ actionChatbot, actionViramate, actionPoker);
 export default class Worker {
   constructor(server, config, sendAction, manager) {
     this.server = server;
+    this.logger = server.logger;
     this.config = config;
     this.sendAction = sendAction;
     this.manager = manager;
@@ -78,8 +79,8 @@ export default class Worker {
     const handler = this.actions[name] || (() => {
       return this.sendAction.apply(this, [name].concat(args));
     });
-    if (this.config.Debug.LogAction) {
-      console.log(
+    if (this.config.Debug.DebugAction) {
+      this.logger.debug(
         "Action: " + name + 
         "(" + args.map((val) => JSON.stringify(val)).join(", ") + ")"
       );
@@ -130,7 +131,7 @@ export default class Worker {
 
     const successCallback = handleCallback(success);
     const errorCallback = handleCallback(error || ((next, actions, err) => {
-      console.error(err);
+      this.logger.error(err);
     }));
 
     if (this.running) {
