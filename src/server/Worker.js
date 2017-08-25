@@ -38,10 +38,7 @@ const actions = _.assign({
     });
   },
   "finish": function() {
-    return new Promise((resolve) => {
-      this.stop();
-      resolve();
-    });
+    return this.server.stop();
   },
   "timeout": function(timeout) {
     return new Promise((resolve) => {

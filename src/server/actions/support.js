@@ -59,7 +59,9 @@ export default {
 
     // most of the logic goes to the contentscript now
     return new Promise((resolve, reject) => {
-      this.sendAction("support", ids).then((data) => {
+      this.callAction("wait", ".atx-lead-link").then(() => {
+        return this.sendAction("support", ids);
+      }, reject).then((data) => {
         executeClick(this, data).then(resolve, reject);
       }, reject);
     });

@@ -98,6 +98,7 @@ export default class BasicCommands {
       return reply.text("Autopilot is not running");
     } else {
       reply.text("Stopping autopilot...").then(() => {
+        this.notifyOnStop = true;
         return this.server.stop();
       }, this.defaultErrorHandler).then(noop, this.defaultErrorHandler);
     }
