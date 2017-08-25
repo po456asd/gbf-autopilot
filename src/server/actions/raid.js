@@ -26,7 +26,7 @@ export default {
         if (result === "ok") return this.actions["merge.array"](battle);
         else throw result;
       }, reject).then(resolve, (result) => {
-        console.log("Joining raid failed: " + result);
+        this.logger.error("Joining raid failed: " + result);
         result = result.toLowerCase();
         if (result.indexOf("provide backup") >= 0) {
           return this.actions.timeout(Number(this.config.Raid.BackupTimeoutInMs || 30000));

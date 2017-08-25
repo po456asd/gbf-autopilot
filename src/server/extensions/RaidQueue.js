@@ -16,8 +16,8 @@ export default class RaidQueue extends BaseExtension {
   onSetup(server) {
     server.app.get("/raid/reset", (req, res) => {
       this.reset();
+      server.logger.debug("Raid queue reset!");
       res.end("OK");
-      console.log("Raid queue reset!");
     });
     server.app.post("/raid", (req, res) => {
       this.push(req.body);
@@ -54,7 +54,7 @@ export default class RaidQueue extends BaseExtension {
 
   pop(validate) {
     return new Promise((resolve, reject) => {
-      if (this.queue.length > 0) {
+      if (this.queue.length > 0 && validate()) {
         resolve(this.queue.pop());
       } else {
         const id = ++this.id;
