@@ -61,7 +61,7 @@ export function translateElements(elements) {
   return result;
 }
 
-export function translateElement(el) {
+export function translateElement(el, scroll) {
   return new Promise((resolve, reject) => {
     // is a selector
     if (_.isString(el)) {
@@ -91,7 +91,7 @@ export function translateElement(el) {
     }
 
     var waitForScroll = false;
-    if (rect.y > windowRect.height - footerHeight || rect.y < 0) {
+    if (scroll && (rect.y > windowRect.height - footerHeight || rect.y < 0)) {
       const cnt = query("#mobage-game-container")[0];
       const before = cnt.parentNode.scrollTop;
       cnt.parentNode.scrollTop += rect.y;
@@ -116,13 +116,15 @@ export function translateElement(el) {
 function payloadToOptions(payload) {
   var selector = payload;
   var retryOnNull = false;
+  var scroll = true;
   if (_.isArray(payload)) {
     selector = payload.join(",");
   } else if (_.isObject(payload)) {
     selector = payload.selector;
     retryOnNull = payload.retry;
+    scroll = payload.scroll !== false;
   }
-  return {selector, retryOnNull};
+  return {selector, retryOnNull, scroll};
 }
 
 function elementCallback(selector, done) {
@@ -156,11 +158,11 @@ export default {
     findElements();
   },
   "element": function(payload, done, fail, retry) {
-    const {selector, retryOnNull} = payloadToOptions(payload);
+    const {selector, retryOnNull, scroll} = payloadToOptions(payload);
     const cb = elementCallback(selector, done);
 
     function findElement() {
-      translateElement(query(selector)).then((result) => {
+      translateElement(query(selector), scroll).then((result) => {
         cb(result);
       }, () => {
         if (retryOnNull) {

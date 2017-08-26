@@ -29,6 +29,7 @@ const actions = _.assign({
   "wait": function(selector, timeout) {
     return this.sendAction("element", {
       selector,
+      scroll: false,
       retry: true
     }, timeout);
   },
