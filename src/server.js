@@ -180,7 +180,9 @@ export default class Server {
 
   onDisconnect(socket) {
     this.logger.debug(`Client '${socket.id}' disconnected!`);
-    this.stop().then(noop, ::this.defaultErrorHandler);
+    if (this.running) {
+      this.stop().then(noop, ::this.defaultErrorHandler);
+    }
   }
 
   sendAction(realSocket, actionName, payload, timeout) {

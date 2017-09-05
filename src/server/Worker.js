@@ -1,5 +1,4 @@
 import _ from "lodash";
-import StackTrace from "stacktrace-js";
 import actionClick from "./actions/click";
 import actionSupport from "./actions/support";
 import actionBattle from "./actions/battle";
@@ -142,6 +141,7 @@ export default class Worker {
     if (this.running) return;
     this.running = true;
     this.initialScenario = initialScenario;
+    this.logger.debug("Running scenario '" + this.config.Scenario.Name + "'");
     this.runScenario();
     return this;
   }

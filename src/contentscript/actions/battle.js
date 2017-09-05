@@ -1,14 +1,13 @@
 import forEach from "lodash/forEach";
 
 export default {
-  "battle.count": function(arg, done, fail) {
-    const el = document.querySelector(".txt-info-num > div:first-child");
-    if (!el) {
-      fail(new Error("Battle element not found!"));
-      return;
+  "battle.count": function(arg, done) {
+    const el = document.querySelector(".prt-battle-num > .txt-info-num > div:first-child");
+    if (el && el.className.indexOf("num-info") >= 0) {
+      done(Number(el.className.substr(-1)));
+    } else {
+      done(1);
     }
-
-    done(Number(el.className.substr(-1)));
   },
   "battle.state": function(arg, done, fail) {
     const els = document.querySelectorAll(".prt-command-chara[pos]");
@@ -67,9 +66,6 @@ export default {
     });
 
     forEach(summonEls, (el) => {
-      const id = Number(el.getAttribute("summon-id"));
-      if (!id) return;
-
       const pos = Number(el.getAttribute("pos"));
       const call = {
         name: el.getAttribute("summon-skill-name"),
@@ -84,7 +80,7 @@ export default {
         max: Number(el.getAttribute("summon-require"))
       };
       const summonState = {
-        id, pos,
+        pos,
         code: Number(el.getAttribute("summon-code")),
         name: el.getAttribute("summon-name"),
         attribute: Number(el.getAttribute("summon-attribute")),
@@ -95,6 +91,7 @@ export default {
       state.summons[pos] = summonState;
     });
 
+    console.log(state);
     done(state);
   }
 };

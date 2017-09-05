@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 export default function() {
   return new Promise((resolve, reject) => {
     var state = {};
@@ -10,10 +12,11 @@ export default function() {
     }, reject).then((battleState) => {
       const skillState = battleState.party;
       Object.keys(skillState).forEach((chara) => {
-        state.party[Number(chara) - 1].skills = skillState[chara];
+        const skills = _.values(skillState[chara]).sort((a, b) => b.skill - a.skill);
+        state.party[Number(chara) - 1].skills = skills;
       });
 
-      state.summons = battleState.summons;
+      state.summons = _.values(battleState.summons).sort((a, b) => b.num - a.num);
       resolve(state);
     }, reject);
   });

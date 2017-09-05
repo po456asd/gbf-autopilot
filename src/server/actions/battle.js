@@ -23,7 +23,7 @@ const closeScenario = [
     command.merge(
       ["click", selector],
       ["timeout", 1500],
-      ["wait", selectors.next + ",.btn-control"],
+      ["wait", [selectors.next + ",.btn-control", 3000]],
       closeScenario
     ).then(next);
   }, nextHandler
@@ -203,7 +203,7 @@ export default {
   "battle.summon": function(number) {
     if (this.config.Viramate.QuickSummon) {
       const index = number ? number - 1 : 0;
-      return this.actions.click(number ?
+      return this.actions.click(index ?
         `.quick-summon[index="${index}"]` :
         ".quick-summon.available");
     }
@@ -230,7 +230,10 @@ export default {
           ["merge", callback(state)],
           ["battle.logic", callback]
         ).then(resolve, reject);
-      }, reject);
+      }, (err) => {
+        this.logger.debug("Not in battle: " + err);
+        resolve();
+      });
     });
   },
 
