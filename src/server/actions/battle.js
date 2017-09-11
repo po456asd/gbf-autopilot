@@ -23,7 +23,7 @@ const closeScenario = [
     command.merge(
       ["click", selector],
       ["timeout", 1500],
-      ["wait", [selectors.next + ",.btn-control", 3000]],
+      ["wait", [selectors.next + ",.btn-control", 3000], nextHandler, nextHandler],
       closeScenario
     ).then(next);
   }, nextHandler
