@@ -25,6 +25,7 @@ const requestExternal = ::port.sendRequest;
 
 const handleRequest = (request, sendResponse) => {
   var rejected = false;
+  var callHandler;
   const {id, action, payload, timeout} = request;
   const handler = actions[action];
   const done = (payload) => {
@@ -35,24 +36,32 @@ const handleRequest = (request, sendResponse) => {
     sendResponse({id, type: "response", action, payload, success: false});
   };
   const retry = (callback, timeout) => {
+    if (!isNaN(callback)) {
+      timeout = callback;
+      callback = null;
+    }
     if (!rejected) {
-      setTimeout(callback, timeout || 1000 / 125);
+      setTimeout(callback || callHandler, timeout || 1000 / 125);
     } else {
       fail("Rejected!");
     }
   };
 
-  var result;
-  if (handler) {
-    result = handler.call({
-      actions, requestExternal
-    }, payload, done, fail, retry);
-  } else {
-    fail(actions.error(action));
-    return;
-  }
+  callHandler = () => {
+    if (handler) {
+      return handler.call({
+        actions, requestExternal
+      }, payload, done, fail, retry);
+    } else {
+      return new Error("Action '" + action + "' not found!");
+    }
+  };
 
-  if (result !== undefined) {
+  var result = callHandler();
+
+  if (result instanceof Error) {
+    fail(actions.error(action));
+  } else if (result !== undefined) {
     done(result);
   } else {
     setTimeout(() => {

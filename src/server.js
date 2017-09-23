@@ -85,6 +85,9 @@ export default class Server {
       this.logger.debug("Got stop request from webhook");
       defaultResponse(res, this.stop());
     });
+    app.get("/sockets", (req, res) => {
+      res.end(Object.keys(this.sockets).join(", "));
+    });
   }
 
   setupSocket(io) {

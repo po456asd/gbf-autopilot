@@ -91,7 +91,6 @@ export default {
       state.summons[pos] = summonState;
     });
 
-    console.log(state);
     done(state);
   }
 };
