@@ -219,7 +219,7 @@ export default class Server {
         },
         timer: timeout > 0 ? setTimeout(() => {
           if (!resolved) {
-            this.stopSocket(id).then(() => {
+            this.stopSocket(realSocket.id).then(() => {
               reject(new Error(`Action ${expression} timed out!`));
             }, reject);
             return;
